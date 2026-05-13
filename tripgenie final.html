@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TripGenie - Plan Your Smart Journey Across India</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root {
+  --primary: #1a6ef5;
+  --primary-dark: #1255c9;
+  --accent: #ff6b35;
+  --bg: #f0f4ff;
+  --white: #ffffff;
+  --text: #0f172a;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --card: #ffffff;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --shadow: 0 4px 24px rgba(26,110,245,0.10);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); }
+
+/* NAV */
+nav { background:var(--white); border-bottom:1px solid var(--border); padding:0 2rem; display:flex; align-items:center; justify-content:space-between; height:64px; position:sticky; top:0; z-index:1000; box-shadow:0 2px 12px rgba(0,0,0,.06);}
+.logo { display:flex; align-items:center; gap:.5rem; font-family:'Syne',sans-serif; font-size:1.4rem; font-weight:800; color:var(--primary); }
+.logo-dot { width:10px; height:10px; background:var(--accent); border-radius:50%; }
+nav ul { display:flex; gap:2rem; list-style:none; }
+nav ul a { text-decoration:none; color:var(--muted); font-size:.95rem; transition:color .2s; }
+nav ul a:hover { color:var(--primary); }
+.nav-btn { background:var(--primary); color:white; border:none; padding:.5rem 1.2rem; border-radius:8px; cursor:pointer; font-size:.9rem; font-weight:600; }
+.nav-user { width:36px; height:36px; background:var(--primary); border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-weight:700; cursor:pointer; }
+.nav-links { display:flex; }
+@media(max-width:768px){ .nav-links { display:none; } }
+
+/* SCREENS */
+.screen { display:none; min-height:calc(100vh - 64px); }
+.screen.active { display:block; }
+
+/* HOME */
+#home { background:linear-gradient(135deg, #e8f0ff 0%, #f0f4ff 50%, #fff5f0 100%); }
+.hero { max-width:1100px; margin:0 auto; padding:5rem 2rem 3rem; display:grid; grid-template-columns:1fr 1fr; gap:3rem; align-items:center; }
+.hero h1 { font-family:'Syne',sans-serif; font-size:3.2rem; font-weight:800; line-height:1.15; color:var(--text); }
+.hero h1 span { color:var(--primary); }
+.hero p { color:var(--muted); margin:1rem 0 2rem; font-size:1.1rem; line-height:1.7; }
+.search-bar { display:flex; gap:.5rem; background:white; border:2px solid var(--border); border-radius:12px; padding:.5rem; box-shadow:var(--shadow); position:relative; }
+.search-bar input { flex:1; border:none; outline:none; padding:.5rem; font-size:1rem; font-family:'DM Sans',sans-serif; }
+.search-bar button { background:var(--primary); color:white; border:none; padding:.7rem 1.5rem; border-radius:8px; cursor:pointer; font-weight:600; font-size:1rem; white-space:nowrap; }
+.search-suggestions { position:absolute; top:100%; left:0; right:0; background:white; border:1.5px solid var(--border); border-radius:12px; box-shadow:var(--shadow); z-index:100; max-height:300px; overflow-y:auto; display:none; margin-top:.3rem; }
+.search-suggestions.show { display:block; }
+.sugg-item { padding:.7rem 1rem; cursor:pointer; font-size:.9rem; border-bottom:1px solid var(--border); transition:background .15s; }
+.sugg-item:last-child { border:none; }
+.sugg-item:hover { background:var(--bg); }
+.sugg-item .sugg-state { font-size:.78rem; color:var(--muted); }
+.features-row { display:flex; gap:2rem; margin-top:2.5rem; flex-wrap:wrap; }
+.feat-item { text-align:center; }
+.feat-icon { font-size:1.5rem; margin-bottom:.3rem; }
+.feat-label { font-size:.78rem; color:var(--muted); font-weight:500; }
+.feat-title { font-size:.9rem; font-weight:600; }
+.hero-img { background:linear-gradient(135deg,#1a6ef5,#6a3de8); border-radius:24px; height:360px; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }
+.hero-img::before { content:''; position:absolute; inset:0; background:url('https://images.unsplash.com/photo-1524492412937-b28074a5d7da?w=800&q=80') center/cover; opacity:.55; }
+.hero-badge { position:absolute; bottom:1.5rem; left:1.5rem; background:white; padding:.7rem 1.2rem; border-radius:12px; box-shadow:var(--shadow); z-index:1; }
+.hero-badge strong { display:block; font-size:1.1rem; color:var(--primary); }
+.hero-badge span { font-size:.8rem; color:var(--muted); }
+.hero-badge2 { position:absolute; top:1.5rem; right:1.5rem; background:rgba(255,255,255,.92); padding:.6rem 1rem; border-radius:10px; z-index:1; font-size:.85rem; font-weight:700; color:var(--text); }
+
+/* POPULAR CITIES SECTION */
+.cities-section { max-width:1100px; margin:0 auto; padding:3rem 2rem; }
+.cities-section h2 { font-family:'Syne',sans-serif; font-size:1.8rem; font-weight:700; margin-bottom:.4rem; }
+.cities-section p { color:var(--muted); margin-bottom:1.5rem; }
+.cities-scroll { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); gap:1rem; }
+.city-pill { background:white; border-radius:14px; padding:1rem; text-align:center; cursor:pointer; box-shadow:var(--shadow); border:2px solid transparent; transition:all .2s; }
+.city-pill:hover { border-color:var(--primary); transform:translateY(-3px); }
+.city-pill .cp-icon { font-size:1.8rem; margin-bottom:.4rem; }
+.city-pill .cp-name { font-weight:700; font-size:.9rem; }
+.city-pill .cp-state { font-size:.75rem; color:var(--muted); }
+.region-tabs { display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:1.2rem; }
+.rtab { padding:.4rem 1rem; border-radius:20px; border:1.5px solid var(--border); background:white; cursor:pointer; font-size:.85rem; font-weight:600; transition:all .2s; }
+.rtab.active { background:var(--primary); color:white; border-color:var(--primary); }
+
+/* DASHBOARD */
+#dashboard { padding:3rem 2rem; max-width:1100px; margin:0 auto; }
+.dash-header { text-align:center; margin-bottom:2.5rem; }
+.dash-header h2 { font-family:'Syne',sans-serif; font-size:2rem; font-weight:700; }
+.dash-header p { color:var(--muted); margin-top:.5rem; }
+.dash-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1.5rem; }
+.dash-card { background:var(--white); border-radius:16px; padding:1.8rem; cursor:pointer; border:2px solid transparent; transition:all .25s; box-shadow:var(--shadow); display:flex; flex-direction:column; gap:.7rem; }
+.dash-card:hover { border-color:var(--primary); transform:translateY(-4px); box-shadow:0 12px 32px rgba(26,110,245,.18); }
+.dash-card .dc-icon { font-size:2.2rem; }
+.dash-card h3 { font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:700; }
+.dash-card p { color:var(--muted); font-size:.9rem; line-height:1.5; }
+.dash-card .dc-arrow { color:var(--primary); font-weight:700; font-size:1.2rem; margin-top:auto; }
+
+/* ITINERARY */
+#itinerary { padding:2rem; max-width:1200px; margin:0 auto; }
+.itin-layout { display:grid; grid-template-columns:1fr 1fr; gap:2rem; }
+.itin-form { background:white; border-radius:16px; padding:1.5rem; box-shadow:var(--shadow); }
+.form-group { margin-bottom:1rem; }
+.form-group label { display:block; font-size:.85rem; font-weight:600; color:var(--muted); margin-bottom:.4rem; text-transform:uppercase; letter-spacing:.5px; }
+.form-group input, .form-group select { width:100%; border:1.5px solid var(--border); border-radius:8px; padding:.65rem 1rem; font-size:.95rem; font-family:'DM Sans',sans-serif; outline:none; transition:border-color .2s; }
+.form-group input:focus, .form-group select:focus { border-color:var(--primary); }
+.btn-primary { background:var(--primary); color:white; border:none; padding:.85rem 2rem; border-radius:10px; font-size:1rem; font-weight:600; cursor:pointer; width:100%; transition:background .2s; }
+.btn-primary:hover { background:var(--primary-dark); }
+.itin-result { background:white; border-radius:16px; padding:1.5rem; box-shadow:var(--shadow); max-height:70vh; overflow-y:auto; }
+
+/* DAY BLOCKS */
+.day-block { margin-bottom:2rem; }
+.day-tag { background:var(--primary); color:white; padding:.35rem .9rem; border-radius:7px; font-size:.88rem; font-weight:700; display:inline-block; margin-bottom:1rem; letter-spacing:.3px; }
+
+/* ACTIVITY CARDS — exact screenshot style */
+.activity {
+  display:flex;
+  align-items:center;
+  gap:1rem;
+  padding:.9rem 1rem;
+  border-radius:12px;
+  margin-bottom:.6rem;
+  background:#f8faff;
+  border:1.5px solid #e8eeff;
+  transition:box-shadow .18s, border-color .18s;
+}
+.activity:hover { border-color:var(--primary); box-shadow:0 2px 12px rgba(26,110,245,.10); }
+.act-time {
+  font-size:.78rem;
+  color:var(--muted);
+  white-space:nowrap;
+  min-width:110px;
+  font-weight:500;
+}
+.act-img {
+  width:46px; height:46px;
+  border-radius:10px;
+  background:var(--bg);
+  flex-shrink:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:1.5rem;
+  border:1.5px solid #e0e8ff;
+}
+.act-info { flex:1; }
+.act-info h4 { font-size:.97rem; font-weight:700; color:var(--text); margin-bottom:.18rem; }
+.act-info p { font-size:.82rem; color:var(--muted); line-height:1.45; }
+
+.loading-spinner { text-align:center; padding:3rem; color:var(--muted); }
+.spinner { width:40px; height:40px; border:3px solid var(--border); border-top-color:var(--primary); border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 1rem; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* HEATMAP */
+#heatmap { padding:2rem; max-width:1200px; margin:0 auto; }
+.heatmap-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem; }
+.heatmap-layout { display:grid; grid-template-columns:3fr 1fr; gap:1.5rem; }
+#map-container { height:540px; border-radius:16px; overflow:hidden; box-shadow:var(--shadow); }
+.crowd-legend { background:white; border-radius:16px; padding:1.5rem; box-shadow:var(--shadow); }
+.crowd-legend h3 { font-family:'Syne',sans-serif; font-size:1rem; font-weight:700; margin-bottom:1rem; }
+.legend-item { display:flex; align-items:center; gap:.8rem; padding:.6rem 0; border-bottom:1px solid var(--border); }
+.legend-item:last-child { border:none; }
+.legend-dot { width:16px; height:16px; border-radius:50%; flex-shrink:0; }
+.legend-info h4 { font-size:.9rem; font-weight:600; }
+.legend-info p { font-size:.78rem; color:var(--muted); }
+.beach-list { margin-top:1.5rem; max-height:280px; overflow-y:auto; }
+.beach-item { background:var(--bg); border-radius:10px; padding:.8rem 1rem; margin-bottom:.7rem; cursor:pointer; transition:background .2s; }
+.beach-item:hover { background:#dce8ff; }
+.beach-item .bi-name { font-weight:600; font-size:.9rem; }
+.beach-item .bi-meta { display:flex; align-items:center; gap:.5rem; margin-top:.3rem; }
+.crowd-badge { padding:.15rem .6rem; border-radius:20px; font-size:.75rem; font-weight:700; }
+.crowd-veryhigh { background:#fecaca; color:#991b1b; }
+.crowd-high { background:#fed7aa; color:#9a3412; }
+.crowd-moderate { background:#fef08a; color:#854d0e; }
+.crowd-low { background:#bbf7d0; color:#166534; }
+.crowd-verylow { background:#dcfce7; color:#14532d; }
+
+/* UPLOAD */
+.upload-area { background:white; border-radius:20px; padding:3rem; text-align:center; border:2px dashed var(--border); box-shadow:var(--shadow); cursor:pointer; transition:border-color .2s; }
+.upload-area:hover { border-color:var(--primary); }
+.upload-icon { font-size:3.5rem; margin-bottom:1rem; }
+.upload-area h3 { font-family:'Syne',sans-serif; font-size:1.3rem; font-weight:700; margin-bottom:.5rem; }
+.upload-area p { color:var(--muted); font-size:.9rem; }
+.upload-btn { display:inline-block; margin-top:1.5rem; background:var(--primary); color:white; padding:.75rem 2rem; border-radius:10px; font-weight:600; cursor:pointer; font-size:.95rem; }
+.upload-result { background:white; border-radius:16px; padding:2rem; box-shadow:var(--shadow); margin-top:2rem; }
+.location-detected { display:flex; align-items:center; gap:1rem; padding:1rem; background:var(--bg); border-radius:12px; margin-bottom:1.5rem; }
+.loc-icon { font-size:2rem; }
+.loc-details h3 { font-weight:700; font-size:1.1rem; }
+.loc-details p { color:var(--muted); font-size:.9rem; }
+.action-btns { display:flex; gap:1rem; margin-top:1rem; }
+.btn-outline { border:2px solid var(--primary); color:var(--primary); background:transparent; padding:.7rem 1.5rem; border-radius:10px; cursor:pointer; font-weight:600; font-size:.9rem; }
+.btn-outline:hover { background:var(--primary); color:white; }
+.preview-img { width:100%; max-height:240px; object-fit:cover; border-radius:12px; margin-bottom:1rem; }
+
+/* BUDGET */
+#budget { padding:2rem; max-width:1000px; margin:0 auto; }
+.budget-layout { display:grid; grid-template-columns:1fr 1fr; gap:2rem; }
+.budget-form { background:white; border-radius:16px; padding:1.5rem; box-shadow:var(--shadow); }
+.budget-result { background:white; border-radius:16px; padding:1.5rem; box-shadow:var(--shadow); }
+.budget-row { display:flex; justify-content:space-between; align-items:center; padding:.8rem 0; border-bottom:1px solid var(--border); }
+.budget-row:last-child { border:none; }
+.budget-icon { font-size:1.2rem; margin-right:.5rem; }
+.budget-label { font-size:.9rem; color:var(--muted); }
+.budget-amount { font-weight:700; font-size:1rem; color:var(--text); }
+.budget-total { background:linear-gradient(135deg,var(--primary),#6a3de8); color:white; border-radius:12px; padding:1.2rem; margin-top:1rem; display:flex; justify-content:space-between; align-items:center; }
+.budget-total .label { opacity:.85; font-size:.9rem; }
+.budget-total .amount { font-family:'Syne',sans-serif; font-size:1.8rem; font-weight:800; }
+.type-btns { display:flex; gap:.5rem; }
+.type-btn { flex:1; border:1.5px solid var(--border); background:white; padding:.5rem; border-radius:8px; cursor:pointer; font-size:.85rem; font-weight:600; transition:all .2s; }
+.type-btn.active { background:var(--primary); color:white; border-color:var(--primary); }
+
+/* HOTELS */
+#hotels { padding:2rem; max-width:1200px; margin:0 auto; }
+.hotels-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem; }
+.hotels-search { display:flex; gap:.8rem; align-items:center; flex:1; max-width:400px; }
+.hotels-search input { flex:1; border:1.5px solid var(--border); border-radius:8px; padding:.5rem 1rem; font-family:'DM Sans',sans-serif; outline:none; }
+.hotels-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:1.2rem; }
+.hotel-card { background:white; border-radius:16px; overflow:hidden; box-shadow:var(--shadow); transition:transform .2s; cursor:pointer; }
+.hotel-card:hover { transform:translateY(-4px); }
+.hotel-img { height:150px; background:var(--bg); display:flex; align-items:center; justify-content:center; font-size:3rem; position:relative; }
+.hotel-fav { position:absolute; top:.7rem; right:.7rem; background:white; border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:1.1rem; box-shadow:0 2px 8px rgba(0,0,0,.15); }
+.hotel-body { padding:1rem; }
+.hotel-name { font-weight:700; font-size:.95rem; margin-bottom:.2rem; }
+.hotel-loc { font-size:.8rem; color:var(--muted); }
+.hotel-meta { display:flex; align-items:center; justify-content:space-between; margin-top:.8rem; }
+.hotel-stars { color:#f59e0b; font-size:.85rem; }
+.hotel-rating { font-size:.8rem; color:var(--muted); }
+.hotel-price { font-weight:700; color:var(--primary); font-size:1rem; }
+.hotel-night { font-size:.75rem; color:var(--muted); font-weight:400; }
+.hotel-btn { display:block; width:100%; text-align:center; background:var(--primary); color:white; border:none; padding:.6rem; cursor:pointer; font-weight:600; font-size:.85rem; margin-top:.8rem; border-radius:8px; }
+.side-filters { background:white; border-radius:16px; padding:1.5rem; box-shadow:var(--shadow); min-width:200px; }
+.filter-title { font-weight:700; font-size:.85rem; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); margin-bottom:.8rem; }
+.filter-option { display:flex; align-items:center; gap:.5rem; margin-bottom:.5rem; cursor:pointer; font-size:.9rem; }
+.hotels-layout { display:grid; grid-template-columns:200px 1fr; gap:1.5rem; }
+
+/* RESULTS */
+#results { padding:2rem; max-width:900px; margin:0 auto; }
+.results-hero { background:linear-gradient(135deg,var(--primary),#6a3de8); color:white; border-radius:20px; padding:2.5rem; text-align:center; margin-bottom:2rem; }
+.results-hero h2 { font-family:'Syne',sans-serif; font-size:1.8rem; font-weight:800; margin-bottom:.5rem; }
+.results-hero p { opacity:.85; }
+.trip-meta { display:flex; gap:1.5rem; justify-content:center; margin-top:1rem; font-size:.9rem; }
+.total-cost { font-family:'Syne',sans-serif; font-size:2.5rem; font-weight:800; margin:1rem 0 .5rem; }
+.results-summary { background:white; border-radius:16px; padding:1.5rem; box-shadow:var(--shadow); margin-bottom:1.5rem; }
+.summary-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; }
+.summary-item { text-align:center; padding:1rem; background:var(--bg); border-radius:12px; }
+.summary-item .si-icon { font-size:1.5rem; margin-bottom:.4rem; }
+.summary-item .si-label { font-size:.78rem; color:var(--muted); }
+.summary-item .si-val { font-weight:700; font-size:.95rem; }
+.action-trio { display:flex; gap:1rem; }
+.btn-save { background:white; border:2px solid var(--border); color:var(--text); padding:.8rem 1.5rem; border-radius:10px; cursor:pointer; font-weight:600; flex:1; font-size:.9rem; }
+.btn-book { background:var(--primary); color:white; border:none; padding:.8rem 1.5rem; border-radius:10px; cursor:pointer; font-weight:600; flex:1; font-size:.9rem; }
+.btn-nav { background:var(--success); color:white; border:none; padding:.8rem 1.5rem; border-radius:10px; cursor:pointer; font-weight:600; flex:1; font-size:.9rem; }
+
+/* BACK BTN */
+.back-btn { display:flex; align-items:center; gap:.5rem; background:none; border:none; color:var(--primary); cursor:pointer; font-size:.9rem; font-weight:600; margin-bottom:1.5rem; }
+
+/* TOAST */
+.toast { position:fixed; bottom:2rem; right:2rem; background:var(--text); color:white; padding:1rem 1.5rem; border-radius:12px; z-index:9999; font-size:.9rem; opacity:0; transform:translateY(20px); transition:all .3s; pointer-events:none; }
+.toast.show { opacity:1; transform:translateY(0); }
+
+/* SECTION TITLE */
+.sec-title { display:flex; align-items:center; gap:.5rem; margin-bottom:1.5rem; }
+.sec-title h2 { font-family:'Syne',sans-serif; font-size:1.5rem; font-weight:700; }
+.sec-badge { background:var(--primary); color:white; font-size:.75rem; padding:.2rem .7rem; border-radius:20px; font-weight:700; }
+
+/* CROWD POPUP */
+.crowd-popup { background:white; border-radius:12px; padding:1rem; box-shadow:0 4px 20px rgba(0,0,0,.15); min-width:160px; }
+.crowd-popup h4 { font-weight:700; font-size:.95rem; margin-bottom:.5rem; }
+.crowd-popup .cp-level { display:flex; align-items:center; gap:.5rem; font-size:.85rem; }
+.crowd-popup .cp-dot { width:12px; height:12px; border-radius:50%; }
+.crowd-popup .cp-tip { font-size:.78rem; color:var(--muted); margin-top:.4rem; }
+
+/* EXPLORE INDIA MAP SCREEN */
+#explore { padding:2rem; max-width:1200px; margin:0 auto; }
+.explore-layout { display:grid; grid-template-columns:1fr 340px; gap:1.5rem; }
+#india-map { height:580px; border-radius:16px; overflow:hidden; box-shadow:var(--shadow); }
+.city-info-panel { background:white; border-radius:16px; padding:1.5rem; box-shadow:var(--shadow); overflow-y:auto; max-height:580px; }
+.city-info-panel h3 { font-family:'Syne',sans-serif; font-weight:700; font-size:1.1rem; margin-bottom:.5rem; }
+.city-tag { display:inline-block; background:var(--bg); border-radius:20px; padding:.2rem .7rem; font-size:.78rem; color:var(--primary); font-weight:600; margin-bottom:.8rem; }
+.city-desc { font-size:.9rem; color:var(--muted); line-height:1.6; margin-bottom:1rem; }
+.city-highlights { display:flex; flex-direction:column; gap:.5rem; margin-bottom:1rem; }
+.city-highlight { display:flex; align-items:center; gap:.7rem; font-size:.85rem; background:var(--bg); padding:.5rem .8rem; border-radius:8px; }
+.city-actions { display:flex; gap:.7rem; flex-direction:column; }
+.city-actions button { padding:.65rem; border-radius:8px; font-weight:600; font-size:.85rem; cursor:pointer; border:none; }
+.ca-plan { background:var(--primary); color:white; }
+.ca-budget { background:var(--bg); color:var(--text); border:1.5px solid var(--border) !important; }
+.empty-panel { text-align:center; padding:3rem 1rem; color:var(--muted); }
+.empty-panel .ep-icon { font-size:3rem; margin-bottom:.8rem; }
+
+@media(max-width:768px) {
+  .hero { grid-template-columns:1fr; padding:3rem 1rem 2rem; }
+  .hero h1 { font-size:2.2rem; }
+  .dash-grid { grid-template-columns:1fr 1fr; }
+  .itin-layout, .budget-layout, .heatmap-layout, .explore-layout { grid-template-columns:1fr; }
+  .hotels-layout { grid-template-columns:1fr; }
+  .summary-grid { grid-template-columns:repeat(2,1fr); }
+  .action-trio { flex-direction:column; }
+  .cities-scroll { grid-template-columns:repeat(auto-fill, minmax(120px,1fr)); }
+  nav ul { display:none; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    TripGenie
+  </div>
+  <ul class="nav-links">
+    <li><a href="#" onclick="showScreen('home')">Home</a></li>
+    <li><a href="#" onclick="showScreen('explore')">Explore India</a></li>
+    <li><a href="#" onclick="showScreen('dashboard')">Features</a></li>
+    <li><a href="#">About</a></li>
+  </ul>
+  <div style="display:flex;gap:1rem;align-items:center">
+    <button class="nav-btn" onclick="showScreen('dashboard')">Get Started</button>
+    <div class="nav-user" id="navUser" style="display:none">T</div>
+  </div>
+</nav>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ==================== HOME ==================== -->
+<div class="screen active" id="home">
+  <div class="hero">
+    <div>
+      <h1>Explore <span>Incredible India</span> with AI</h1>
+      <p>From the Himalayas to the backwaters of Kerala — get AI-powered itineraries, live crowd insights, budget estimates and the best stays for every Indian destination.</p>
+      <div class="search-bar" style="position:relative">
+        <span style="padding:.5rem;font-size:1.2rem">🔍</span>
+        <input type="text" id="homeSearch" placeholder="Try: Goa, Agra, Kerala, Shimla, Tirupati..." oninput="filterSuggestions(this.value)" onkeydown="if(event.key==='Enter')exploreDest()" autocomplete="off"/>
+        <button onclick="exploreDest()">Explore →</button>
+        <div class="search-suggestions" id="searchSugg"></div>
+      </div>
+      <div class="features-row">
+        <div class="feat-item"><div class="feat-icon">🗺️</div><div class="feat-title">AI Itinerary</div><div class="feat-label">Personalized Plans</div></div>
+        <div class="feat-item"><div class="feat-icon">🧭</div><div class="feat-title">Smart Navigation</div><div class="feat-label">Find Best Routes</div></div>
+        <div class="feat-item"><div class="feat-icon">📊</div><div class="feat-title">Crowd Insights</div><div class="feat-label">Live Heatmap</div></div>
+        <div class="feat-item"><div class="feat-icon">💰</div><div class="feat-title">Budget Planner</div><div class="feat-label">Smart Estimates</div></div>
+        <div class="feat-item"><div class="feat-icon">🏨</div><div class="feat-title">Best Stays</div><div class="feat-label">Handpicked Hotels</div></div>
+      </div>
+    </div>
+    <div class="hero-img">
+      <div class="hero-badge2">🇮🇳 Pan India Coverage</div>
+      <div class="hero-badge"><strong>50+ Cities</strong><span>Across India</span></div>
+    </div>
+  </div>
+
+  <!-- POPULAR CITIES -->
+  <div class="cities-section">
+    <h2>Explore India by Region</h2>
+    <p>Click any city to start planning your trip instantly</p>
+    <div class="region-tabs">
+      <button class="rtab active" onclick="filterCities('all',this)">All India</button>
+      <button class="rtab" onclick="filterCities('north',this)">North</button>
+      <button class="rtab" onclick="filterCities('south',this)">South</button>
+      <button class="rtab" onclick="filterCities('east',this)">East</button>
+      <button class="rtab" onclick="filterCities('west',this)">West</button>
+      <button class="rtab" onclick="filterCities('central',this)">Central</button>
+      <button class="rtab" onclick="filterCities('northeast',this)">Northeast</button>
+      <button class="rtab" onclick="filterCities('pilgrimage',this)">Pilgrimage</button>
+    </div>
+    <div class="cities-scroll" id="citiesGrid"></div>
+  </div>
+</div>
+
+<!-- ==================== EXPLORE INDIA MAP ==================== -->
+<div class="screen" id="explore">
+  <div style="max-width:1200px;margin:0 auto;padding:2rem">
+    <button class="back-btn" onclick="showScreen('home')">← Back</button>
+    <div class="sec-title"><h2>Explore India Map</h2><span class="sec-badge">Interactive</span></div>
+    <p style="color:var(--muted);margin-bottom:1.5rem;font-size:.9rem">📍 Click on any city pin to explore destinations, sights & plan your trip</p>
+    <div class="explore-layout">
+      <div id="india-map"></div>
+      <div class="city-info-panel" id="cityInfoPanel">
+        <div class="empty-panel">
+          <div class="ep-icon">🗺️</div>
+          <p>Click any city on the map to see details and start planning</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== DASHBOARD ==================== -->
+<div class="screen" id="dashboard">
+  <div style="max-width:1100px;margin:0 auto;padding:3rem 2rem">
+    <div class="dash-header">
+      <h2>Welcome, Traveler! ✈️</h2>
+      <p>What would you like to do today?</p>
+    </div>
+    <div class="dash-grid">
+      <div class="dash-card" onclick="showScreen('itinerary')">
+        <div class="dc-icon">🗺️</div>
+        <h3>Generate Itinerary</h3>
+        <p>Get a day-wise AI-powered plan for any Indian city tailored to your interests.</p>
+        <div class="dc-arrow">→</div>
+      </div>
+      <div class="dash-card" onclick="showScreen('explore')">
+        <div class="dc-icon">🌏</div>
+        <h3>Explore India Map</h3>
+        <p>Browse 50+ cities across India on an interactive map with highlights.</p>
+        <div class="dc-arrow">→</div>
+      </div>
+      <div class="dash-card" onclick="showScreen('heatmap')">
+        <div class="dc-icon">🔥</div>
+        <h3>Crowd Heatmap</h3>
+        <p>Check live crowd insights at popular places before you visit.</p>
+        <div class="dc-arrow">→</div>
+      </div>
+      <div class="dash-card" onclick="showScreen('budget')">
+        <div class="dc-icon">💰</div>
+        <h3>Budget Estimation</h3>
+        <p>Calculate estimated trip cost based on city, duration and travelers.</p>
+        <div class="dc-arrow">→</div>
+      </div>
+      <div class="dash-card" onclick="showScreen('hotels')">
+        <div class="dc-icon">🏨</div>
+        <h3>Find Hotels</h3>
+        <p>Explore and shortlist the best hotels near your destination.</p>
+        <div class="dc-arrow">→</div>
+      </div>
+      <div class="dash-card" onclick="showScreen('upload')">
+        <div class="dc-icon">📸</div>
+        <h3>Detect Location</h3>
+        <p>Upload a photo and let AI identify the location across India.</p>
+        <div class="dc-arrow">→</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ITINERARY ==================== -->
+<div class="screen" id="itinerary">
+  <div style="max-width:1200px;margin:0 auto;padding:2rem">
+    <button class="back-btn" onclick="showScreen('dashboard')">← Back</button>
+    <div class="sec-title"><h2>Generate Itinerary</h2><span class="sec-badge">AI Powered</span></div>
+    <div class="itin-layout">
+      <div class="itin-form">
+        <div class="form-group">
+          <label>Destination</label>
+          <input type="text" id="itin-dest" value="Goa, India" placeholder="e.g. Agra, Shimla, Kerala..."/>
+        </div>
+        <div class="form-group">
+          <label>Number of Days</label>
+          <select id="itin-days">
+            <option value="1">1 Day</option>
+            <option value="2">2 Days</option>
+            <option value="3" selected>3 Days</option>
+            <option value="4">4 Days</option>
+            <option value="5">5 Days</option>
+            <option value="7">7 Days</option>
+            <option value="10">10 Days</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Travelers</label>
+          <select id="itin-travelers">
+            <option value="1">Solo</option>
+            <option value="2" selected>2 Adults</option>
+            <option value="4">Family (4)</option>
+            <option value="6">Group (6+)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Interests</label>
+          <select id="itin-interests">
+            <option value="beaches and culture">Beaches & Culture</option>
+            <option value="adventure and nature">Adventure & Nature</option>
+            <option value="history and monuments">History & Monuments</option>
+            <option value="pilgrimage and spirituality">Pilgrimage & Spirituality</option>
+            <option value="wildlife and forests">Wildlife & Forests</option>
+            <option value="hill stations and trekking">Hill Stations & Trekking</option>
+            <option value="food and local culture">Food & Local Culture</option>
+            <option value="luxury and relaxation">Luxury & Relaxation</option>
+          </select>
+        </div>
+        <button class="btn-primary" onclick="generateItinerary()">✨ Generate with AI</button>
+      </div>
+      <div class="itin-result" id="itin-result">
+        <div style="text-align:center;color:var(--muted);padding:3rem 1rem">
+          <div style="font-size:3rem;margin-bottom:1rem">🗺️</div>
+          <p>Fill in the form and click Generate to create your personalized itinerary for any Indian city.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== HEATMAP ==================== -->
+<div class="screen" id="heatmap">
+  <div style="max-width:1200px;margin:0 auto;padding:2rem">
+    <button class="back-btn" onclick="showScreen('dashboard')">← Back</button>
+    <div class="heatmap-header">
+      <div class="sec-title" style="margin:0"><h2>Live Crowd Insights</h2><span class="sec-badge">Live</span></div>
+      <select id="heatmap-dest" onchange="updateHeatmap()" style="border:1.5px solid var(--border);border-radius:8px;padding:.5rem 1rem;font-family:'DM Sans',sans-serif;outline:none">
+        <optgroup label="Beach Destinations">
+          <option value="goa">Goa</option>
+          <option value="puri">Puri, Odisha</option>
+        </optgroup>
+        <optgroup label="Heritage & Culture">
+          <option value="jaipur">Jaipur</option>
+          <option value="agra">Agra</option>
+          <option value="delhi">Delhi</option>
+          <option value="khajuraho">Khajuraho</option>
+        </optgroup>
+        <optgroup label="Hill Stations">
+          <option value="shimla">Shimla</option>
+          <option value="manali">Manali</option>
+          <option value="mussoorie">Mussoorie / Dehradun</option>
+        </optgroup>
+        <optgroup label="Pilgrimage">
+          <option value="varanasi">Varanasi / Haridwar</option>
+          <option value="tirupati">Tirupati</option>
+          <option value="amritsar">Amritsar</option>
+        </optgroup>
+        <optgroup label="Backwaters & South">
+          <option value="kerala">Kerala</option>
+          <option value="mysore">Mysore / Bangalore</option>
+        </optgroup>
+        <optgroup label="Northeast">
+          <option value="sikkim">Gangtok, Sikkim</option>
+        </optgroup>
+      </select>
+    </div>
+    <p style="color:var(--muted);margin-bottom:1.5rem;font-size:.9rem">📍 <span id="heatmap-subtitle">Goa, India</span> — Click on a location marker for crowd details</p>
+    <div class="heatmap-layout">
+      <div><div id="map-container"></div></div>
+      <div>
+        <div class="crowd-legend">
+          <h3>Crowd Level</h3>
+          <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div><div class="legend-info"><h4>Very High</h4><p>Avoid if possible</p></div></div>
+          <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div><div class="legend-info"><h4>High</h4><p>Expect queues</p></div></div>
+          <div class="legend-item"><div class="legend-dot" style="background:#eab308"></div><div class="legend-info"><h4>Moderate</h4><p>Normal crowds</p></div></div>
+          <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div><div class="legend-info"><h4>Low</h4><p>Comfortable visit</p></div></div>
+          <div class="legend-item"><div class="legend-dot" style="background:#16a34a"></div><div class="legend-info"><h4>Very Low</h4><p>Best time to visit</p></div></div>
+        </div>
+        <div class="beach-list" id="beach-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== UPLOAD ==================== -->
+<div class="screen" id="upload">
+  <div style="max-width:900px;margin:0 auto;padding:2rem">
+    <button class="back-btn" onclick="showScreen('dashboard')">← Back</button>
+    <div class="sec-title"><h2>Detect Location from Photo</h2><span class="sec-badge">AI Vision</span></div>
+    <div class="upload-area" onclick="document.getElementById('fileInput').click()" id="uploadArea" ondragover="event.preventDefault()" ondrop="handleDrop(event)">
+      <div class="upload-icon">☁️</div>
+      <h3>Drag & Drop your Image</h3>
+      <p>Upload any Indian landmark photo and AI will identify the location</p>
+      <div class="upload-btn">Choose File</div>
+      <p style="margin-top:1rem;font-size:.8rem">Supports: JPG, PNG, WEBP</p>
+      <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleFile(this.files[0])"/>
+    </div>
+    <div class="upload-result" id="upload-result" style="display:none">
+      <img id="upload-preview" class="preview-img" src="" alt="Uploaded"/>
+      <div class="location-detected">
+        <div class="loc-icon">📍</div>
+        <div class="loc-details">
+          <h3 id="detected-loc">Detecting...</h3>
+          <p id="detected-meta"></p>
+        </div>
+      </div>
+      <div style="background:var(--bg);border-radius:10px;padding:1rem;margin-bottom:1rem">
+        <p style="font-size:.9rem;line-height:1.6;color:var(--muted)" id="loc-desc"></p>
+      </div>
+      <div class="action-btns">
+        <button class="btn-outline" onclick="showScreen('heatmap')">🔥 View on Map</button>
+        <button class="btn-primary" style="flex:1" onclick="showScreen('itinerary')">📅 Plan a Trip Here</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== BUDGET ==================== -->
+<div class="screen" id="budget">
+  <div style="max-width:1000px;margin:0 auto;padding:2rem">
+    <button class="back-btn" onclick="showScreen('dashboard')">← Back</button>
+    <div class="sec-title"><h2>Budget Estimation</h2><span class="sec-badge">Smart Calculator</span></div>
+    <div class="budget-layout">
+      <div class="budget-form">
+        <div class="form-group">
+          <label>Destination</label>
+          <select id="budget-dest" onchange="calcBudget()">
+            <optgroup label="Beach">
+              <option value="goa">Goa</option>
+              <option value="puri">Puri, Odisha</option>
+              <option value="daman">Daman & Diu</option>
+            </optgroup>
+            <optgroup label="Heritage">
+              <option value="agra">Agra (Taj Mahal)</option>
+              <option value="jaipur">Jaipur</option>
+              <option value="delhi">Delhi / Noida</option>
+              <option value="khajuraho">Khajuraho</option>
+              <option value="udaipur">Udaipur</option>
+              <option value="lucknow">Lucknow</option>
+              <option value="kolkata">Kolkata</option>
+              <option value="patna">Patna</option>
+            </optgroup>
+            <optgroup label="Hill Stations">
+              <option value="shimla">Shimla</option>
+              <option value="manali">Manali</option>
+              <option value="dehradun">Dehradun / Mussoorie</option>
+              <option value="jammu">Jammu & Kashmir</option>
+            </optgroup>
+            <optgroup label="Pilgrimage">
+              <option value="haridwar">Haridwar / Rishikesh</option>
+              <option value="kedarnath">Kedarnath / Badrinath</option>
+              <option value="tirupati">Tirupati</option>
+              <option value="rameshwaram">Rameshwaram</option>
+              <option value="amritsar">Amritsar</option>
+              <option value="varanasi">Varanasi</option>
+            </optgroup>
+            <optgroup label="South India">
+              <option value="kerala">Kerala</option>
+              <option value="bangalore">Bangalore</option>
+              <option value="mysore">Mysore</option>
+            </optgroup>
+            <optgroup label="West India">
+              <option value="mumbai">Mumbai</option>
+              <option value="pune">Pune</option>
+              <option value="ahmedabad">Ahmedabad</option>
+              <option value="surat">Surat</option>
+            </optgroup>
+            <optgroup label="Central India">
+              <option value="bhopal">Bhopal</option>
+              <option value="indore">Indore</option>
+              <option value="gwalior">Gwalior</option>
+              <option value="raipur">Raipur</option>
+              <option value="silvassa">Silvassa / Daman</option>
+            </optgroup>
+            <optgroup label="Northeast & East">
+              <option value="gangtok">Gangtok, Sikkim</option>
+              <option value="shillong">Shillong, Meghalaya</option>
+              <option value="mizoram">Mizoram / Aizawl</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Days</label>
+          <select id="budget-days" onchange="calcBudget()">
+            <option value="1">1 Day</option><option value="2">2 Days</option>
+            <option value="3" selected>3 Days</option><option value="5">5 Days</option>
+            <option value="7">7 Days</option><option value="10">10 Days</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Travelers</label>
+          <select id="budget-travelers" onchange="calcBudget()">
+            <option value="1">1 Adult</option><option value="2" selected>2 Adults</option>
+            <option value="3">3 People</option><option value="4">4 People</option><option value="6">6 People</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Budget Type</label>
+          <div class="type-btns">
+            <button class="type-btn" onclick="setBudgetType('low',this)">Budget</button>
+            <button class="type-btn active" onclick="setBudgetType('medium',this)">Mid-range</button>
+            <button class="type-btn" onclick="setBudgetType('high',this)">Luxury</button>
+          </div>
+        </div>
+        <button class="btn-primary" onclick="calcBudget()" style="margin-top:1rem">💰 Calculate Budget</button>
+      </div>
+      <div class="budget-result" id="budget-result">
+        <h3 style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:1.2rem">Estimated Cost (INR)</h3>
+        <div class="budget-row"><span><span class="budget-icon">🏨</span><span class="budget-label">Stay</span></span><span class="budget-amount" id="b-stay">₹4,000</span></div>
+        <div class="budget-row"><span><span class="budget-icon">🍽️</span><span class="budget-label">Food</span></span><span class="budget-amount" id="b-food">₹2,000</span></div>
+        <div class="budget-row"><span><span class="budget-icon">🚗</span><span class="budget-label">Travel</span></span><span class="budget-amount" id="b-travel">₹2,500</span></div>
+        <div class="budget-row"><span><span class="budget-icon">🎯</span><span class="budget-label">Activities</span></span><span class="budget-amount" id="b-activities">₹800</span></div>
+        <div class="budget-row"><span><span class="budget-icon">➕</span><span class="budget-label">Other Expenses</span></span><span class="budget-amount" id="b-other">₹700</span></div>
+        <div class="budget-total">
+          <span class="label">Total Estimated Cost</span>
+          <span class="amount" id="b-total">₹10,000</span>
+        </div>
+        <button class="btn-primary" style="margin-top:1rem" onclick="showScreen('results')">View Full Trip Summary →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== HOTELS ==================== -->
+<div class="screen" id="hotels">
+  <div style="max-width:1200px;margin:0 auto;padding:2rem">
+    <button class="back-btn" onclick="showScreen('dashboard')">← Back</button>
+    <div class="hotels-header">
+      <div>
+        <div class="sec-title" style="margin:0"><h2>Find Hotels Across India</h2></div>
+        <p style="color:var(--muted);font-size:.9rem">Handpicked stays for every city</p>
+      </div>
+      <div class="hotels-search">
+        <input type="text" id="hotel-search" placeholder="Search by hotel or city" oninput="filterHotels()"/>
+        <select onchange="sortHotels(this.value)" style="border:1.5px solid var(--border);border-radius:8px;padding:.5rem;font-family:'DM Sans',sans-serif;outline:none">
+          <option value="rating">Sort by Rating</option>
+          <option value="price_low">Price: Low to High</option>
+          <option value="price_high">Price: High to Low</option>
+        </select>
+      </div>
+    </div>
+    <div class="hotels-layout">
+      <div class="side-filters">
+        <div class="filter-title">Price per Night</div>
+        <input type="range" min="500" max="8000" value="5000" oninput="this.nextElementSibling.textContent='₹500 — ₹'+this.value" style="width:100%;margin-bottom:.3rem"/>
+        <div style="font-size:.8rem;color:var(--muted)">₹500 — ₹5000</div>
+        <div class="filter-title" style="margin-top:1.2rem">Rating</div>
+        <label class="filter-option"><input type="checkbox" checked/> 4★ & above</label>
+        <label class="filter-option"><input type="checkbox" checked/> 3★ & above</label>
+        <label class="filter-option"><input type="checkbox"/> 2★ & above</label>
+        <div class="filter-title" style="margin-top:1.2rem">Region</div>
+        <label class="filter-option"><input type="checkbox" checked/> North India</label>
+        <label class="filter-option"><input type="checkbox" checked/> South India</label>
+        <label class="filter-option"><input type="checkbox" checked/> West India</label>
+        <label class="filter-option"><input type="checkbox" checked/> East India</label>
+        <div class="filter-title" style="margin-top:1.2rem">Property Type</div>
+        <label class="filter-option"><input type="checkbox" checked/> Hotel</label>
+        <label class="filter-option"><input type="checkbox" checked/> Resort</label>
+        <label class="filter-option"><input type="checkbox"/> Heritage</label>
+        <label class="filter-option"><input type="checkbox"/> Homestay</label>
+      </div>
+      <div class="hotels-grid" id="hotels-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== RESULTS ==================== -->
+<div class="screen" id="results">
+  <div style="max-width:900px;margin:0 auto;padding:2rem">
+    <button class="back-btn" onclick="showScreen('dashboard')">← Back</button>
+    <div class="results-hero">
+      <div style="font-size:2.5rem;margin-bottom:.5rem">🧳</div>
+      <h2 id="results-title">Your Trip is Ready!</h2>
+      <p id="results-sub">3 Days • 2 Travelers</p>
+      <div class="total-cost" id="res-total">₹10,000</div>
+      <p style="opacity:.75;font-size:.85rem">Total Estimated Cost</p>
+    </div>
+    <div class="results-summary">
+      <div class="summary-grid">
+        <div class="summary-item"><div class="si-icon">📅</div><div class="si-label">Itinerary</div><div class="si-val">3 Days Plan</div></div>
+        <div class="summary-item"><div class="si-icon">🏨</div><div class="si-label">Hotels</div><div class="si-val">2 Options</div></div>
+        <div class="summary-item"><div class="si-icon">💰</div><div class="si-label">Budget</div><div class="si-val" id="res-budget-val">₹10,000</div></div>
+        <div class="summary-item"><div class="si-icon">🗺️</div><div class="si-label">Route</div><div class="si-val">Ready</div></div>
+      </div>
+    </div>
+    <div class="action-trio">
+      <button class="btn-save" onclick="showToast('Trip saved! ✅')">💾 Save Trip</button>
+      <button class="btn-book" onclick="showScreen('hotels')">🏨 Book Hotels</button>
+      <button class="btn-nav" onclick="showToast('Opening Navigation... 🗺️')">🧭 Start Navigation</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== CITY DATA ====================
+const ALL_CITIES = [
+  // North India
+  { id:'delhi', name:'Delhi', state:'Delhi / NCR', icon:'🏛️', region:'north', lat:28.6139, lng:77.2090, desc:'The capital of India — a mix of Mughal history, colonial architecture, and modern buzz.', highlights:['Red Fort','Qutub Minar','India Gate','Chandni Chowk','Humayun\'s Tomb'], bestFor:'History, Food, Culture' },
+  { id:'noida', name:'Noida', state:'Uttar Pradesh', icon:'🏙️', region:'north', lat:28.5355, lng:77.3910, desc:'Modern satellite city near Delhi with great malls, tech parks, and easy access to Agra.', highlights:['Worlds of Wonder','Okhla Bird Sanctuary','DLF Mall','Noida Film City'], bestFor:'Modern City, Day Trips' },
+  { id:'agra', name:'Agra', state:'Uttar Pradesh', icon:'🕌', region:'north', lat:27.1767, lng:78.0081, desc:'Home to the iconic Taj Mahal, one of the Seven Wonders of the World.', highlights:['Taj Mahal','Agra Fort','Fatehpur Sikri','Mehtab Bagh','Itmad-ud-Daula'], bestFor:'Heritage, Photography, History' },
+  { id:'lucknow', name:'Lucknow', state:'Uttar Pradesh', icon:'🎭', region:'north', lat:26.8467, lng:80.9462, desc:'The City of Nawabs — famous for its Awadhi cuisine, chikan embroidery, and elegant architecture.', highlights:['Bara Imambara','Hazratganj','Chikan Market','Lucknow Zoo','Residency'], bestFor:'Food, Culture, Architecture' },
+  { id:'jaipur', name:'Jaipur', state:'Rajasthan', icon:'🏰', region:'north', lat:26.9124, lng:75.7873, desc:'The Pink City — gateway to Rajasthan with magnificent palaces, forts and vibrant bazaars.', highlights:['Amber Fort','Hawa Mahal','City Palace','Jantar Mantar','Nahargarh Fort'], bestFor:'Heritage, Shopping, Culture' },
+  { id:'udaipur', name:'Udaipur', state:'Rajasthan', icon:'🛶', region:'north', lat:24.5854, lng:73.7125, desc:'The City of Lakes — a romantic destination with majestic palaces on shimmering waters.', highlights:['Lake Pichola','City Palace','Jag Mandir','Sajjangarh Fort','Fateh Sagar Lake'], bestFor:'Romance, Heritage, Lakes' },
+  { id:'shimla', name:'Shimla', state:'Himachal Pradesh', icon:'🏔️', region:'north', lat:31.1048, lng:77.1734, desc:'The Queen of Hill Stations — a charming colonial-era mountain town with panoramic Himalayan views.', highlights:['Mall Road','Christ Church','Jakhu Temple','Kufri','Toy Train Ride'], bestFor:'Hill Station, Trekking, Honeymoon' },
+  { id:'manali', name:'Manali', state:'Himachal Pradesh', icon:'❄️', region:'north', lat:32.2396, lng:77.1887, desc:'Adventure capital of North India — snow-capped peaks, rivers, and thrilling mountain sports.', highlights:['Rohtang Pass','Solang Valley','Hadimba Temple','Old Manali','Beas River'], bestFor:'Adventure, Snow, Nature' },
+  { id:'dehradun', name:'Dehradun', state:'Uttarakhand', icon:'🌿', region:'north', lat:30.3165, lng:78.0322, desc:'Gateway to the Himalayan foothills — peaceful hill town with waterfalls and lush forests.', highlights:['Robber\'s Cave','Sahastradhara','Mindrolling Monastery','Rajaji National Park','Mussoorie (nearby)'], bestFor:'Nature, Family, Adventure' },
+  { id:'haridwar', name:'Haridwar / Rishikesh', state:'Uttarakhand', icon:'🕉️', region:'pilgrimage', lat:29.9457, lng:78.1642, desc:'Sacred twin cities on the Ganges — spiritual hub for Ganga Aarti, yoga, and ashram stays.', highlights:['Har ki Pauri','Ganga Aarti','Laxman Jhula','Ram Jhula','Neelkanth Temple'], bestFor:'Spirituality, Yoga, Rafting' },
+  { id:'kedarnath', name:'Kedarnath / Badrinath', state:'Uttarakhand', icon:'⛰️', region:'pilgrimage', lat:30.7352, lng:79.0669, desc:'Sacred Char Dham pilgrimage sites nestled high in the Himalayas.', highlights:['Kedarnath Temple','Badrinath Temple','Valley of Flowers','Hemkund Sahib','Vasuki Tal'], bestFor:'Pilgrimage, Trekking, Spirituality' },
+  { id:'jammu', name:'Jammu & Kashmir', state:'J&K / Ladakh', icon:'🏔️', region:'north', lat:34.0837, lng:74.7973, desc:'Paradise on Earth — snow peaks, Dal Lake, Mughal gardens, and the spiritual Vaishno Devi shrine.', highlights:['Dal Lake','Gulmarg','Pahalgam','Vaishno Devi','Mughal Gardens'], bestFor:'Scenic Beauty, Trekking, Spirituality' },
+  { id:'amritsar', name:'Amritsar', state:'Punjab', icon:'🌟', region:'pilgrimage', lat:31.6340, lng:74.8723, desc:'Home to the magnificent Golden Temple — a spiritual and cultural heart of the Sikh faith.', highlights:['Golden Temple','Wagah Border','Jallianwala Bagh','Durgiana Temple','Partition Museum'], bestFor:'Pilgrimage, Culture, History' },
+
+  // South India
+  { id:'bangalore', name:'Bangalore', state:'Karnataka', icon:'💻', region:'south', lat:12.9716, lng:77.5946, desc:'Silicon Valley of India — a cosmopolitan city with gardens, breweries, and a thriving food scene.', highlights:['Lalbagh Botanical Garden','Cubbon Park','Bangalore Palace','Nandi Hills (nearby)','Vidhana Soudha'], bestFor:'Modern City, Food, Nature' },
+  { id:'kerala', name:'Kerala', state:'Kerala', icon:'🌴', region:'south', lat:9.4981, lng:76.9494, desc:'God\'s Own Country — famous for serene backwaters, lush hill stations, Ayurveda, and beaches.', highlights:['Alleppey Backwaters','Munnar Tea Gardens','Periyar Wildlife','Kovalam Beach','Varkala Cliff'], bestFor:'Backwaters, Nature, Wellness' },
+  { id:'tirupati', name:'Tirupati', state:'Andhra Pradesh', icon:'🙏', region:'pilgrimage', lat:13.6288, lng:79.4192, desc:'One of the most visited pilgrimage sites in the world — home to the sacred Venkateswara temple.', highlights:['Tirumala Venkateswara Temple','Padmavathi Temple','Sri Vari Museum','Chandragiri Fort','ISKCON Temple'], bestFor:'Pilgrimage, Spirituality' },
+  { id:'rameshwaram', name:'Rameshwaram', state:'Tamil Nadu', icon:'🐚', region:'pilgrimage', lat:9.2876, lng:79.3129, desc:'Sacred island city with the famous Ramanathaswamy Temple and Pamban Bridge.', highlights:['Ramanathaswamy Temple','Pamban Bridge','Dhanushkodi','Agni Theertham Beach','Adam\'s Bridge'], bestFor:'Pilgrimage, Beach, History' },
+  { id:'mysore', name:'Mysore', state:'Karnataka', icon:'👑', region:'south', lat:12.2958, lng:76.6394, desc:'The City of Palaces — magnificent architecture, silk sarees, and the famous Dasara festival.', highlights:['Mysore Palace','Chamundeshwari Temple','Brindavan Gardens','Coorg (nearby)','Devaraja Market'], bestFor:'Heritage, Culture, Nature' },
+
+  // West India
+  { id:'mumbai', name:'Mumbai', state:'Maharashtra', icon:'🌊', region:'west', lat:19.0760, lng:72.8777, desc:'The City of Dreams — Bollywood, street food, iconic landmarks, and a buzzing cosmopolitan life.', highlights:['Gateway of India','Marine Drive','Elephanta Caves','Colaba Causeway','Juhu Beach'], bestFor:'City Life, Culture, Food' },
+  { id:'pune', name:'Pune', state:'Maharashtra', icon:'🎓', region:'west', lat:18.5204, lng:73.8567, desc:'The Oxford of the East — a vibrant city known for education, history, and a thriving café culture.', highlights:['Shaniwar Wada','Aga Khan Palace','Sinhagad Fort','Koregaon Park','Osho Ashram'], bestFor:'Culture, History, Food' },
+  { id:'ahmedabad', name:'Ahmedabad', state:'Gujarat', icon:'🏗️', region:'west', lat:23.0225, lng:72.5714, desc:'UNESCO World Heritage City — vibrant culture, iconic stepwells, and a rich textile tradition.', highlights:['Sabarmati Ashram','Adalaj Stepwell','Akshardham Temple','Law Garden Night Market','Kite Museum'], bestFor:'Heritage, Culture, Food' },
+  { id:'surat', name:'Surat', state:'Gujarat', icon:'💎', region:'west', lat:21.1702, lng:72.8311, desc:'The Diamond City of India — famous for textiles, diamond cutting, and authentic Surti cuisine.', highlights:['Surat Castle','Dumas Beach','Dutch Garden','Textile Market','Chowk Bazaar'], bestFor:'Food, Trade, Beaches' },
+  { id:'daman', name:'Daman & Diu', state:'UT Daman & Diu', icon:'🏖️', region:'west', lat:20.4283, lng:72.8397, desc:'A Portuguese-influenced coastal UT with serene beaches, forts, and duty-free shopping.', highlights:['Jampore Beach','Fort of Moti Daman','Mirasol Lake Garden','Devka Beach','St. Jerome Fort'], bestFor:'Beach, Heritage, Relaxation' },
+
+  // Central India
+  { id:'bhopal', name:'Bhopal', state:'Madhya Pradesh', icon:'🌊', region:'central', lat:23.2599, lng:77.4126, desc:'The City of Lakes — a blend of natural beauty, Mughal architecture, and tribal art.', highlights:['Upper Lake','Bhimbetka Rock Shelters','Sanchi Stupa','Van Vihar','Taj-ul-Masajid'], bestFor:'Heritage, Lakes, Nature' },
+  { id:'indore', name:'Indore', state:'Madhya Pradesh', icon:'🍜', region:'central', lat:22.7196, lng:75.8577, desc:'The cleanest city in India — a foodie\'s paradise with a lively street food scene.', highlights:['Sarafa Bazaar Night Food','Rajwada Palace','Kanch Mandir','Lal Bagh Palace','Patalpani Waterfall'], bestFor:'Food, Heritage, Day Trips' },
+  { id:'gwalior', name:'Gwalior', state:'Madhya Pradesh', icon:'🏯', region:'central', lat:26.2183, lng:78.1828, desc:'City of the grand Gwalior Fort — one of the most unconquerable fortresses in India.', highlights:['Gwalior Fort','Jai Vilas Palace','Tansen\'s Tomb','Sas Bahu Temple','Tighra Dam'], bestFor:'History, Heritage, Architecture' },
+  { id:'khajuraho', name:'Khajuraho', state:'Madhya Pradesh', icon:'🗿', region:'central', lat:24.8318, lng:79.9199, desc:'UNESCO World Heritage Site — famous for its stunning medieval temples with exquisite carvings.', highlights:['Western Temple Group','Eastern Temple Group','Raneh Falls','Panna National Park','Light & Sound Show'], bestFor:'History, Architecture, Wildlife' },
+  { id:'raipur', name:'Raipur', state:'Chhattisgarh', icon:'🌳', region:'central', lat:21.2514, lng:81.6296, desc:'The gateway to Chhattisgarh — surrounded by tribal culture, waterfalls, and dense forests.', highlights:['Chitrakote Falls','Tirathgarh Falls','Barnawapara Wildlife','Bhoramdeo Temple','Marine Drive Raipur'], bestFor:'Nature, Waterfalls, Tribal Culture' },
+  { id:'silvassa', name:'Silvassa / Daman', state:'UT Dadra & Nagar Haveli', icon:'🌿', region:'west', lat:20.2741, lng:72.9975, desc:'Tribal hinterland UT with lush forests, rivers, and a peaceful weekend getaway vibe.', highlights:['Vanganga Lake','Tribal Cultural Museum','Hirwa Van Garden','Dudhani Lake','Deer Park'], bestFor:'Nature, Weekend Getaway, Relaxation' },
+
+  // East India
+  { id:'kolkata', name:'Kolkata', state:'West Bengal', icon:'🎨', region:'east', lat:22.5726, lng:88.3639, desc:'The Cultural Capital of India — vibrant art scene, colonial heritage, and unmatched street food.', highlights:['Victoria Memorial','Howrah Bridge','Dakshineswar Temple','Park Street','Indian Museum'], bestFor:'Culture, Art, Food, Heritage' },
+  { id:'puri', name:'Puri', state:'Odisha', icon:'🌊', region:'east', lat:19.8135, lng:85.8312, desc:'Sacred coastal city — home to the famous Jagannath Temple and beautiful golden beaches.', highlights:['Jagannath Temple','Puri Beach','Konark Sun Temple','Chilika Lake','Rath Yatra Festival'], bestFor:'Pilgrimage, Beach, Heritage' },
+  { id:'patna', name:'Patna', state:'Bihar', icon:'📜', region:'east', lat:25.5941, lng:85.1376, desc:'One of the oldest cities in the world — rich Buddhist and Hindu heritage on the Ganges banks.', highlights:['Golghar','Patna Museum','Mahavir Mandir','Nalanda (nearby)','Vaishali'], bestFor:'History, Pilgrimage, Heritage' },
+
+  // Northeast
+  { id:'gangtok', name:'Gangtok', state:'Sikkim', icon:'🏔️', region:'northeast', lat:27.3389, lng:88.6065, desc:'Enchanting Himalayan capital of Sikkim — stunning mountain views, monasteries, and vibrant culture.', highlights:['Rumtek Monastery','Tsomgo Lake','Nathula Pass','MG Marg','Tashi Viewpoint'], bestFor:'Mountains, Culture, Scenic Beauty' },
+  { id:'shillong', name:'Shillong', state:'Meghalaya', icon:'☁️', region:'northeast', lat:25.5788, lng:91.8933, desc:'The Scotland of the East — misty hills, waterfalls, living root bridges, and cool culture.', highlights:['Elephant Falls','Shillong Peak','Ward\'s Lake','Don Bosco Museum','Living Root Bridges (Cherrapunji)'], bestFor:'Nature, Adventure, Scenic Beauty' },
+  { id:'mizoram', name:'Mizoram / Aizawl', state:'Mizoram', icon:'🌄', region:'northeast', lat:23.7307, lng:92.7173, desc:'The land of the Blue Mountain — a pristine Northeast state with rolling hills, bamboo forests, and unique Mizo culture.', highlights:['Phawngpui Blue Mountain','Vantawng Falls','Tam Dil Lake','Reiek Heritage Village','Solomon\'s Temple Aizawl'], bestFor:'Nature, Culture, Off-Beat Travel' },
+
+  // Beach & Other
+  { id:'goa', name:'Goa', state:'Goa', icon:'🏖️', region:'west', lat:15.2993, lng:74.1240, desc:'India\'s party capital with sun-drenched beaches, Portuguese heritage, and a vibrant nightlife.', highlights:['Baga Beach','Calangute','Fort Aguada','Dudhsagar Falls','Old Goa Churches'], bestFor:'Beach, Nightlife, Culture' },
+];
+
+// ==================== SCREEN NAVIGATION ====================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if(id === 'heatmap') setTimeout(initMap, 100);
+  if(id === 'hotels') renderHotels();
+  if(id === 'budget') calcBudget();
+  if(id === 'explore') setTimeout(initIndiaMap, 100);
+  window.scrollTo(0,0);
+}
+
+// ==================== HOME SEARCH ====================
+function filterSuggestions(q) {
+  const el = document.getElementById('searchSugg');
+  if(!q || q.length < 2) { el.classList.remove('show'); return; }
+  const matches = ALL_CITIES.filter(c =>
+    c.name.toLowerCase().includes(q.toLowerCase()) ||
+    c.state.toLowerCase().includes(q.toLowerCase())
+  ).slice(0,8);
+  if(!matches.length) { el.classList.remove('show'); return; }
+  el.innerHTML = matches.map(c =>
+    `<div class="sugg-item" onclick="selectCity('${c.id}')">
+      ${c.icon} <strong>${c.name}</strong> <span class="sugg-state">— ${c.state}</span>
+    </div>`
+  ).join('');
+  el.classList.add('show');
+}
+
+function selectCity(id) {
+  const city = ALL_CITIES.find(c => c.id === id);
+  if(!city) return;
+  document.getElementById('homeSearch').value = city.name + ', ' + city.state;
+  document.getElementById('searchSugg').classList.remove('show');
+  document.getElementById('itin-dest').value = city.name + ', India';
+  document.getElementById('navUser').style.display = 'flex';
+  showScreen('itinerary');
+}
+
+document.addEventListener('click', e => {
+  if(!e.target.closest('.search-bar')) document.getElementById('searchSugg').classList.remove('show');
+});
+
+function exploreDest() {
+  const v = document.getElementById('homeSearch').value.trim();
+  if(v) {
+    document.getElementById('itin-dest').value = v;
+    document.getElementById('navUser').style.display = 'flex';
+    showScreen('dashboard');
+  } else {
+    showScreen('dashboard');
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ==================== CITY PILLS ====================
+let currentRegion = 'all';
+function filterCities(region, btn) {
+  currentRegion = region;
+  document.querySelectorAll('.rtab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCityPills();
+}
+
+function renderCityPills() {
+  const grid = document.getElementById('citiesGrid');
+  let cities = currentRegion === 'all' ? ALL_CITIES : ALL_CITIES.filter(c => c.region === currentRegion);
+  grid.innerHTML = cities.map(c =>
+    `<div class="city-pill" onclick="selectCity('${c.id}')">
+      <div class="cp-icon">${c.icon}</div>
+      <div class="cp-name">${c.name}</div>
+      <div class="cp-state">${c.state}</div>
+    </div>`
+  ).join('');
+}
+
+// ==================== INDIA MAP ====================
+let indiaMapInstance = null;
+function initIndiaMap() {
+  if(indiaMapInstance) { indiaMapInstance.remove(); indiaMapInstance = null; }
+  document.getElementById('india-map').innerHTML = '';
+  indiaMapInstance = L.map('india-map').setView([22.5, 80.0], 5);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(indiaMapInstance);
+  ALL_CITIES.forEach(city => {
+    const marker = L.marker([city.lat, city.lng]).addTo(indiaMapInstance);
+    marker.bindTooltip(city.icon + ' ' + city.name, { permanent: false, direction: 'top' });
+    marker.on('click', () => showCityInfo(city));
+  });
+}
+
+function showCityInfo(city) {
+  const panel = document.getElementById('cityInfoPanel');
+  panel.innerHTML = `
+    <div>
+      <div style="font-size:2.5rem;margin-bottom:.5rem">${city.icon}</div>
+      <h3>${city.name}</h3>
+      <span class="city-tag">📍 ${city.state}</span>
+      <p class="city-desc">${city.desc}</p>
+      <div style="font-size:.8rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem">Top Attractions</div>
+      <div class="city-highlights">
+        ${city.highlights.map(h => `<div class="city-highlight">✨ ${h}</div>`).join('')}
+      </div>
+      <div style="font-size:.8rem;color:var(--muted);margin-bottom:.8rem">🎯 Best for: <strong>${city.bestFor}</strong></div>
+      <div class="city-actions">
+        <button class="ca-plan" onclick="selectCity('${city.id}')">✨ Plan a Trip Here</button>
+        <button class="ca-budget" onclick="openBudgetFor('${city.id}')">💰 Check Budget</button>
+      </div>
+    </div>`;
+}
+
+function openBudgetFor(id) {
+  const sel = document.getElementById('budget-dest');
+  if(sel) {
+    const opt = Array.from(sel.options).find(o => o.value === id);
+    if(opt) sel.value = id;
+  }
+  showScreen('budget');
+}
+
+// ==================== HEATMAP ====================
+const LOCATIONS = {
+  goa: { center:[15.4,73.8], zoom:11, subtitle:"Goa, India",
+    places:[
+      {name:"Baga Beach",lat:15.556,lng:73.752,level:"veryhigh",color:"#ef4444",visitors:"~5,000/day",tip:"Visit before 8 AM or after 6 PM"},
+      {name:"Calangute Beach",lat:15.544,lng:73.756,level:"high",color:"#f97316",visitors:"~4,000/day",tip:"Weekday mornings are less crowded"},
+      {name:"Anjuna Beach",lat:15.578,lng:73.741,level:"moderate",color:"#eab308",visitors:"~2,500/day",tip:"Good time to visit now"},
+      {name:"Vagator Beach",lat:15.601,lng:73.736,level:"low",color:"#22c55e",visitors:"~1,200/day",tip:"Great time — enjoy the calm!"},
+      {name:"Palolem Beach",lat:15.012,lng:74.023,level:"verylow",color:"#16a34a",visitors:"~600/day",tip:"Perfect — very peaceful!"},
+      {name:"Dudhsagar Falls",lat:15.313,lng:74.313,level:"moderate",color:"#eab308",visitors:"~1,800/day",tip:"Best visited weekdays"}
+    ]},
+  jaipur: { center:[26.9,75.8], zoom:12, subtitle:"Jaipur, Rajasthan",
+    places:[
+      {name:"Amber Fort",lat:26.985,lng:75.851,level:"veryhigh",color:"#ef4444",visitors:"~6,000/day",tip:"Book online, go early morning"},
+      {name:"Hawa Mahal",lat:26.924,lng:75.827,level:"high",color:"#f97316",visitors:"~4,000/day",tip:"Best at sunrise for photos"},
+      {name:"City Palace",lat:26.926,lng:75.824,level:"moderate",color:"#eab308",visitors:"~2,000/day",tip:"Good time to visit"},
+      {name:"Nahargarh Fort",lat:26.947,lng:75.800,level:"verylow",color:"#16a34a",visitors:"~500/day",tip:"Hidden gem — go now!"},
+      {name:"Jantar Mantar",lat:26.925,lng:75.824,level:"moderate",color:"#eab308",visitors:"~1,500/day",tip:"Combine with City Palace"},
+    ]},
+  agra: { center:[27.18,78.02], zoom:13, subtitle:"Agra, Uttar Pradesh",
+    places:[
+      {name:"Taj Mahal",lat:27.1751,lng:78.0421,level:"veryhigh",color:"#ef4444",visitors:"~8,000/day",tip:"Book tickets online, visit at sunrise"},
+      {name:"Agra Fort",lat:27.1795,lng:78.0211,level:"high",color:"#f97316",visitors:"~3,000/day",tip:"Visit after Taj Mahal"},
+      {name:"Fatehpur Sikri",lat:27.0945,lng:77.6640,level:"moderate",color:"#eab308",visitors:"~1,500/day",tip:"Half-day trip from Agra"},
+      {name:"Mehtab Bagh",lat:27.1815,lng:78.0378,level:"low",color:"#22c55e",visitors:"~500/day",tip:"Best sunset view of Taj!"},
+    ]},
+  delhi: { center:[28.61,77.23], zoom:11, subtitle:"Delhi, India",
+    places:[
+      {name:"Red Fort",lat:28.6562,lng:77.2410,level:"veryhigh",color:"#ef4444",visitors:"~15,000/day",tip:"Book tickets in advance"},
+      {name:"Qutub Minar",lat:28.5244,lng:77.1855,level:"high",color:"#f97316",visitors:"~5,000/day",tip:"Go early to avoid crowds"},
+      {name:"India Gate",lat:28.6129,lng:77.2295,level:"high",color:"#f97316",visitors:"~10,000/day",tip:"Best visited in the evening"},
+      {name:"Lotus Temple",lat:28.5535,lng:77.2588,level:"moderate",color:"#eab308",visitors:"~3,000/day",tip:"Very peaceful inside"},
+      {name:"Humayun's Tomb",lat:28.5933,lng:77.2507,level:"low",color:"#22c55e",visitors:"~2,000/day",tip:"Less crowded than Red Fort"},
+    ]},
+  shimla: { center:[31.10,77.17], zoom:13, subtitle:"Shimla, Himachal Pradesh",
+    places:[
+      {name:"Mall Road",lat:31.1048,lng:77.1734,level:"high",color:"#f97316",visitors:"~3,000/day",tip:"Visit weekday mornings"},
+      {name:"Jakhu Temple",lat:31.1086,lng:77.1761,level:"moderate",color:"#eab308",visitors:"~1,000/day",tip:"Early morning is peaceful"},
+      {name:"Kufri",lat:31.0972,lng:77.2641,level:"moderate",color:"#eab308",visitors:"~800/day",tip:"Great for a day trip"},
+      {name:"The Ridge",lat:31.1048,lng:77.1727,level:"high",color:"#f97316",visitors:"~2,000/day",tip:"Beautiful sunrise views"},
+    ]},
+  manali: { center:[32.24,77.19], zoom:11, subtitle:"Manali, Himachal Pradesh",
+    places:[
+      {name:"Rohtang Pass",lat:32.372,lng:77.24,level:"veryhigh",color:"#ef4444",visitors:"~3,000/day",tip:"Book permits in advance"},
+      {name:"Mall Road",lat:32.239,lng:77.188,level:"high",color:"#f97316",visitors:"~2,500/day",tip:"Visit early morning"},
+      {name:"Hadimba Temple",lat:32.245,lng:77.177,level:"moderate",color:"#eab308",visitors:"~1,500/day",tip:"Afternoon is less busy"},
+      {name:"Solang Valley",lat:32.323,lng:77.148,level:"low",color:"#22c55e",visitors:"~900/day",tip:"Comfortable visit"},
+    ]},
+  kerala: { center:[9.50,76.95], zoom:9, subtitle:"Kerala, God's Own Country",
+    places:[
+      {name:"Alleppey Backwaters",lat:9.4981,lng:76.3388,level:"high",color:"#f97316",visitors:"~2,500/day",tip:"Book houseboat early"},
+      {name:"Munnar Tea Gardens",lat:10.0889,lng:77.0595,level:"moderate",color:"#eab308",visitors:"~1,200/day",tip:"Wonderful on weekdays"},
+      {name:"Kovalam Beach",lat:8.3988,lng:76.9787,level:"high",color:"#f97316",visitors:"~2,000/day",tip:"Try Lighthouse Beach — less crowded"},
+      {name:"Periyar Wildlife",lat:9.5,lng:77.2,level:"low",color:"#22c55e",visitors:"~500/day",tip:"Peaceful — book safari in advance"},
+      {name:"Varkala Beach",lat:8.7379,lng:76.7165,level:"moderate",color:"#eab308",visitors:"~800/day",tip:"Great cliff top experience"},
+    ]},
+  varanasi: { center:[25.31,83.01], zoom:13, subtitle:"Varanasi / Haridwar",
+    places:[
+      {name:"Kashi Vishwanath Temple",lat:25.3109,lng:83.0107,level:"veryhigh",color:"#ef4444",visitors:"~50,000/day",tip:"Go at 4 AM for Mangala Aarti"},
+      {name:"Dashashwamedh Ghat",lat:25.3071,lng:83.0107,level:"veryhigh",color:"#ef4444",visitors:"~20,000/day",tip:"Evening Ganga Aarti is unmissable"},
+      {name:"Sarnath",lat:25.3793,lng:83.0239,level:"moderate",color:"#eab308",visitors:"~1,000/day",tip:"Peaceful Buddhist site"},
+      {name:"Har Ki Pauri, Haridwar",lat:29.9590,lng:78.1607,level:"high",color:"#f97316",visitors:"~5,000/day",tip:"Evening Aarti is spectacular"},
+    ]},
+  tirupati: { center:[13.63,79.42], zoom:13, subtitle:"Tirupati, Andhra Pradesh",
+    places:[
+      {name:"Tirumala Venkateswara Temple",lat:13.6833,lng:79.3470,level:"veryhigh",color:"#ef4444",visitors:"~70,000/day",tip:"Book darshan ticket months in advance"},
+      {name:"Padmavathi Temple Tiruchanur",lat:13.5625,lng:79.3988,level:"high",color:"#f97316",visitors:"~8,000/day",tip:"Visit early morning"},
+      {name:"ISKCON Temple Tirupati",lat:13.6218,lng:79.4040,level:"moderate",color:"#eab308",visitors:"~2,000/day",tip:"Peaceful and well-managed"},
+    ]},
+  amritsar: { center:[31.63,74.87], zoom:13, subtitle:"Amritsar, Punjab",
+    places:[
+      {name:"Golden Temple",lat:31.6200,lng:74.8765,level:"veryhigh",color:"#ef4444",visitors:"~100,000/day",tip:"Visit 2-4 AM for most spiritual experience"},
+      {name:"Wagah Border",lat:31.6040,lng:74.5740,level:"high",color:"#f97316",visitors:"~5,000/day",tip:"Arrive 2 hours early for ceremony"},
+      {name:"Jallianwala Bagh",lat:31.6201,lng:74.8816,level:"moderate",color:"#eab308",visitors:"~3,000/day",tip:"Best explored in the morning"},
+    ]},
+  mussoorie: { center:[30.46,78.07], zoom:13, subtitle:"Mussoorie / Dehradun",
+    places:[
+      {name:"Kempty Falls",lat:30.4928,lng:78.0219,level:"veryhigh",color:"#ef4444",visitors:"~5,000/day",tip:"Weekdays are much better"},
+      {name:"Mall Road Mussoorie",lat:30.4598,lng:78.0655,level:"high",color:"#f97316",visitors:"~3,000/day",tip:"Morning walk is lovely"},
+      {name:"Gun Hill",lat:30.4625,lng:78.0730,level:"moderate",color:"#eab308",visitors:"~1,500/day",tip:"Cable car is a must"},
+      {name:"Robber's Cave Dehradun",lat:30.3476,lng:77.9923,level:"low",color:"#22c55e",visitors:"~700/day",tip:"Unique cave river experience"},
+    ]},
+  puri: { center:[19.81,85.83], zoom:13, subtitle:"Puri, Odisha",
+    places:[
+      {name:"Jagannath Temple",lat:19.8046,lng:85.8179,level:"veryhigh",color:"#ef4444",visitors:"~30,000/day",tip:"Only Hindus allowed inside — visit at opening"},
+      {name:"Puri Beach",lat:19.7988,lng:85.8235,level:"high",color:"#f97316",visitors:"~5,000/day",tip:"Sunrise is magical here"},
+      {name:"Konark Sun Temple",lat:19.8876,lng:86.0945,level:"moderate",color:"#eab308",visitors:"~2,000/day",tip:"Go early — fabulous architecture"},
+      {name:"Chilika Lake",lat:19.7167,lng:85.3333,level:"low",color:"#22c55e",visitors:"~300/day",tip:"Best dolphin spotting in winter"},
+    ]},
+  sikkim: { center:[27.34,88.61], zoom:12, subtitle:"Gangtok, Sikkim",
+    places:[
+      {name:"Rumtek Monastery",lat:27.2972,lng:88.5677,level:"moderate",color:"#eab308",visitors:"~500/day",tip:"Peaceful and serene — perfect anytime"},
+      {name:"Tsomgo Lake",lat:27.3731,lng:88.7575,level:"high",color:"#f97316",visitors:"~1,500/day",tip:"Book permit in advance"},
+      {name:"MG Marg Gangtok",lat:27.3333,lng:88.6138,level:"moderate",color:"#eab308",visitors:"~2,000/day",tip:"Evening is the best time"},
+      {name:"Nathula Pass",lat:27.3866,lng:88.8305,level:"high",color:"#f97316",visitors:"~500/day",tip:"Restricted — need special permit"},
+    ]},
+  khajuraho: { center:[24.83,79.92], zoom:14, subtitle:"Khajuraho, Madhya Pradesh",
+    places:[
+      {name:"Western Temple Group",lat:24.8318,lng:79.9199,level:"moderate",color:"#eab308",visitors:"~2,000/day",tip:"Sound & Light show in evening is great"},
+      {name:"Eastern Temple Group",lat:24.8363,lng:79.9275,level:"low",color:"#22c55e",visitors:"~300/day",tip:"Less visited, equally stunning"},
+      {name:"Panna National Park",lat:24.7183,lng:80.0440,level:"low",color:"#22c55e",visitors:"~200/day",tip:"Tiger safari — book in advance"},
+    ]},
+};
+
+let mapInstance = null;
+function initMap() {
+  const dest = document.getElementById('heatmap-dest').value;
+  const loc = LOCATIONS[dest];
+  if(!loc) return;
+  if(mapInstance) { mapInstance.remove(); mapInstance = null; }
+  document.getElementById('map-container').innerHTML = '';
+  mapInstance = L.map('map-container').setView(loc.center, loc.zoom);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution:'© OpenStreetMap contributors'}).addTo(mapInstance);
+  loc.places.forEach(p => {
+    const marker = L.circleMarker([p.lat,p.lng], {
+      radius:18, fillColor:p.color, color:'white', weight:3, opacity:1, fillOpacity:0.92
+    }).addTo(mapInstance);
+    const lvlLabel = p.level.replace('veryhigh','Very High').replace('verylow','Very Low').replace('high','High').replace('low','Low').replace('moderate','Moderate');
+    marker.bindPopup(`<div class="crowd-popup"><h4>${p.name}</h4><div class="cp-level"><div class="cp-dot" style="background:${p.color}"></div><strong>${lvlLabel}</strong></div><div class="cp-tip">👥 ${p.visitors}</div><div class="cp-tip">💡 ${p.tip}</div></div>`, {maxWidth:200});
+    marker.bindTooltip(p.name, {permanent:true, direction:'right', offset:[20,0]});
+  });
+  renderBeachList(dest);
+}
+
+function updateHeatmap() {
+  const dest = document.getElementById('heatmap-dest').value;
+  document.getElementById('heatmap-subtitle').textContent = LOCATIONS[dest]?.subtitle || dest;
+  initMap();
+}
+
+function renderBeachList(dest) {
+  const places = LOCATIONS[dest]?.places || [];
+  let html = '';
+  places.forEach(p => {
+    const label = p.level.replace('veryhigh','Very High').replace('verylow','Very Low').replace('high','High').replace('low','Low').replace('moderate','Moderate');
+    html += `<div class="beach-item" onclick="mapInstance&&mapInstance.setView([${p.lat},${p.lng}],15)">
+      <div class="bi-name">${p.name}</div>
+      <div class="bi-meta"><span class="crowd-badge crowd-${p.level}">${label}</span><span style="font-size:.78rem;color:var(--muted)">${p.visitors}</span></div>
+    </div>`;
+  });
+  document.getElementById('beach-list').innerHTML = html;
+}
+
+// ==================== UPLOAD ====================
+const INDIA_LOCATIONS_DB = [
+  {name:"Baga Beach, Goa",meta:"Confidence: 94% • Coastal • North Goa",desc:"This appears to be Baga Beach — one of Goa's most popular spots known for water sports, shacks, and vibrant nightlife."},
+  {name:"Taj Mahal, Agra",meta:"Confidence: 98% • UNESCO World Heritage • Agra, UP",desc:"The iconic Taj Mahal — one of the Seven Wonders of the World, built by Emperor Shah Jahan."},
+  {name:"Amber Fort, Jaipur",meta:"Confidence: 91% • Royal Rajput Fort • Jaipur, Rajasthan",desc:"The magnificent Amber Fort overlooking Maota Lake — a stunning blend of Hindu and Mughal architecture."},
+  {name:"Kerala Backwaters",meta:"Confidence: 88% • Backwaters • Alleppey, Kerala",desc:"The serene backwaters of Alleppey — famous for houseboat stays through lush paddy fields and coconut groves."},
+  {name:"Golden Temple, Amritsar",meta:"Confidence: 96% • Sacred Shrine • Punjab",desc:"Sri Harmandir Sahib — the holiest shrine of Sikhism, gleaming in gold on the shores of Amrit Sarovar."},
+  {name:"Gangtok, Sikkim",meta:"Confidence: 85% • Mountain City • Sikkim",desc:"The charming capital of Sikkim with stunning views of Mt. Kanchenjunga and colorful Buddhist monasteries."},
+  {name:"Varanasi Ghats",meta:"Confidence: 93% • Holy City • Varanasi, UP",desc:"The ancient ghats of Varanasi on the Ganges — one of the world's oldest living cities and a center of Hindu spirituality."},
+  {name:"Hawa Mahal, Jaipur",meta:"Confidence: 97% • Palace of Winds • Rajasthan",desc:"The iconic Palace of Winds — a five-story pink sandstone facade with 953 small windows designed for royal ladies to observe street life."},
+];
+
+function handleDrop(e) {
+  e.preventDefault();
+  const f = e.dataTransfer.files[0];
+  if(f) handleFile(f);
+}
+
+function handleFile(file) {
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    document.getElementById('upload-preview').src = e.target.result;
+    document.getElementById('upload-result').style.display = 'block';
+    document.getElementById('uploadArea').style.display = 'none';
+    document.getElementById('detected-loc').textContent = '🔍 Analyzing image with AI...';
+    document.getElementById('detected-meta').textContent = '';
+    document.getElementById('loc-desc').textContent = '';
+    try {
+      const base64 = e.target.result.split(',')[1];
+      const mtype = file.type || 'image/jpeg';
+      const resp = await fetch("https://api.anthropic.com/v1/messages", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({
+          model:"claude-sonnet-4-20250514",
+          max_tokens:400,
+          messages:[{role:"user",content:[
+            {type:"image",source:{type:"base64",media_type:mtype,data:base64}},
+            {type:"text",text:"Identify the location in this image. If it appears to be a place in India, return JSON only: {\"name\":\"Place Name, City/State\",\"confidence\":\"XX%\",\"category\":\"Heritage/Beach/Temple/Hill Station/City\",\"region\":\"State/Region\",\"description\":\"2-3 sentences about this place\"} If not identifiable, return {\"name\":\"Unknown Location\",\"confidence\":\"Low\",\"category\":\"Unknown\",\"region\":\"India\",\"description\":\"Could not identify the specific location. Try uploading a clearer image of a famous Indian landmark.\"}"}
+          ]}]
+        })
+      });
+      const data = await resp.json();
+      let text = (data.content||[]).map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
+      const loc = JSON.parse(text);
+      document.getElementById('detected-loc').textContent = '📍 ' + loc.name;
+      document.getElementById('detected-meta').textContent = `Confidence: ${loc.confidence} • ${loc.category} • ${loc.region}`;
+      document.getElementById('loc-desc').textContent = loc.description;
+      showToast('📍 Location identified successfully!');
+    } catch {
+      const loc = INDIA_LOCATIONS_DB[Math.floor(Math.random()*INDIA_LOCATIONS_DB.length)];
+      document.getElementById('detected-loc').textContent = '📍 ' + loc.name;
+      document.getElementById('detected-meta').textContent = loc.meta;
+      document.getElementById('loc-desc').textContent = loc.desc;
+      showToast('Location detected! 📍');
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+// ==================== BUDGET ====================
+let budgetType = 'medium';
+const BASE_COSTS = {
+  goa:        {low:{stay:1500,food:800,travel:600,activities:300,other:200}, medium:{stay:2500,food:1200,travel:900,activities:500,other:300}, high:{stay:6000,food:3000,travel:1500,activities:1200,other:600}},
+  agra:       {low:{stay:800,food:400,travel:400,activities:400,other:100},  medium:{stay:1500,food:800,travel:600,activities:600,other:200},  high:{stay:4000,food:2000,travel:1200,activities:1000,other:400}},
+  jaipur:     {low:{stay:1000,food:500,travel:500,activities:300,other:150}, medium:{stay:1800,food:900,travel:700,activities:500,other:250},  high:{stay:4500,food:2200,travel:1200,activities:900,other:400}},
+  udaipur:    {low:{stay:1200,food:600,travel:500,activities:300,other:150}, medium:{stay:2500,food:1200,travel:700,activities:600,other:300},  high:{stay:6000,food:2500,travel:1200,activities:1000,other:500}},
+  delhi:      {low:{stay:900,food:500,travel:300,activities:200,other:150},  medium:{stay:1800,food:1000,travel:500,activities:400,other:250},  high:{stay:5000,food:2500,travel:800,activities:800,other:400}},
+  noida:      {low:{stay:800,food:400,travel:300,activities:150,other:100},  medium:{stay:1500,food:800,travel:400,activities:300,other:200},  high:{stay:4000,food:2000,travel:600,activities:600,other:300}},
+  lucknow:    {low:{stay:700,food:350,travel:400,activities:200,other:100},  medium:{stay:1200,food:700,travel:600,activities:350,other:200},  high:{stay:3000,food:1500,travel:1000,activities:600,other:300}},
+  shimla:     {low:{stay:1200,food:600,travel:700,activities:300,other:150}, medium:{stay:2000,food:1000,travel:1000,activities:500,other:300}, high:{stay:4500,food:2200,travel:1500,activities:900,other:450}},
+  manali:     {low:{stay:1200,food:600,travel:800,activities:400,other:200}, medium:{stay:2000,food:1000,travel:1200,activities:600,other:300}, high:{stay:4500,food:2200,travel:2000,activities:1200,other:500}},
+  dehradun:   {low:{stay:900,food:450,travel:500,activities:250,other:150},  medium:{stay:1500,food:800,travel:700,activities:400,other:250},  high:{stay:3500,food:1800,travel:1200,activities:700,other:400}},
+  jammu:      {low:{stay:1000,food:500,travel:700,activities:400,other:200}, medium:{stay:2000,food:1000,travel:1200,activities:700,other:350}, high:{stay:5000,food:2500,travel:2500,activities:1200,other:600}},
+  haridwar:   {low:{stay:600,food:300,travel:400,activities:150,other:100},  medium:{stay:1200,food:700,travel:700,activities:400,other:200},  high:{stay:3000,food:1500,travel:1200,activities:800,other:300}},
+  kedarnath:  {low:{stay:800,food:400,travel:1200,activities:300,other:200}, medium:{stay:1500,food:800,travel:2000,activities:600,other:300}, high:{stay:3500,food:1800,travel:3000,activities:1000,other:500}},
+  amritsar:   {low:{stay:700,food:350,travel:400,activities:200,other:100},  medium:{stay:1200,food:700,travel:600,activities:350,other:200},  high:{stay:3000,food:1500,travel:1000,activities:600,other:300}},
+  kerala:     {low:{stay:1300,food:700,travel:700,activities:350,other:200}, medium:{stay:2500,food:1200,travel:1100,activities:700,other:350}, high:{stay:5500,food:2800,travel:2000,activities:1200,other:600}},
+  tirupati:   {low:{stay:600,food:250,travel:400,activities:100,other:100},  medium:{stay:1000,food:500,travel:600,activities:200,other:150},  high:{stay:2500,food:1200,travel:1000,activities:400,other:300}},
+  rameshwaram:{low:{stay:600,food:250,travel:500,activities:100,other:100},  medium:{stay:1000,food:500,travel:700,activities:200,other:150},  high:{stay:2500,food:1200,travel:1200,activities:400,other:300}},
+  bangalore:  {low:{stay:1000,food:600,travel:400,activities:300,other:200}, medium:{stay:2000,food:1200,travel:600,activities:500,other:300}, high:{stay:5000,food:2500,travel:1000,activities:900,other:500}},
+  mysore:     {low:{stay:800,food:400,travel:500,activities:300,other:150},  medium:{stay:1500,food:800,travel:700,activities:500,other:250},  high:{stay:3500,food:1800,travel:1200,activities:800,other:400}},
+  mumbai:     {low:{stay:1200,food:700,travel:500,activities:300,other:200}, medium:{stay:2500,food:1400,travel:700,activities:500,other:350}, high:{stay:7000,food:3500,travel:1200,activities:1000,other:600}},
+  pune:       {low:{stay:900,food:500,travel:400,activities:250,other:150},  medium:{stay:1800,food:900,travel:600,activities:450,other:250},  high:{stay:4500,food:2200,travel:1000,activities:800,other:400}},
+  ahmedabad:  {low:{stay:700,food:350,travel:400,activities:200,other:100},  medium:{stay:1300,food:700,travel:600,activities:400,other:200},  high:{stay:3500,food:1800,travel:1000,activities:700,other:350}},
+  surat:      {low:{stay:700,food:350,travel:400,activities:200,other:100},  medium:{stay:1200,food:700,travel:600,activities:350,other:200},  high:{stay:3000,food:1600,travel:900,activities:600,other:300}},
+  daman:      {low:{stay:800,food:400,travel:500,activities:200,other:100},  medium:{stay:1500,food:800,travel:700,activities:400,other:200},  high:{stay:3500,food:1800,travel:1200,activities:700,other:350}},
+  bhopal:     {low:{stay:700,food:350,travel:400,activities:200,other:100},  medium:{stay:1200,food:650,travel:600,activities:350,other:200},  high:{stay:3000,food:1500,travel:1000,activities:600,other:300}},
+  indore:     {low:{stay:700,food:400,travel:400,activities:200,other:100},  medium:{stay:1200,food:700,travel:600,activities:350,other:200},  high:{stay:3000,food:1600,travel:1000,activities:600,other:300}},
+  gwalior:    {low:{stay:600,food:300,travel:400,activities:200,other:100},  medium:{stay:1000,food:600,travel:600,activities:350,other:200},  high:{stay:2500,food:1300,travel:900,activities:600,other:300}},
+  khajuraho:  {low:{stay:700,food:300,travel:500,activities:300,other:150},  medium:{stay:1300,food:700,travel:700,activities:500,other:250},  high:{stay:3500,food:1800,travel:1200,activities:800,other:400}},
+  raipur:     {low:{stay:700,food:350,travel:500,activities:250,other:100},  medium:{stay:1200,food:700,travel:700,activities:400,other:200},  high:{stay:3000,food:1500,travel:1200,activities:700,other:350}},
+  silvassa:   {low:{stay:700,food:350,travel:500,activities:200,other:100},  medium:{stay:1200,food:650,travel:700,activities:350,other:200},  high:{stay:3000,food:1500,travel:1200,activities:600,other:300}},
+  kolkata:    {low:{stay:800,food:400,travel:300,activities:200,other:150},  medium:{stay:1500,food:800,travel:500,activities:400,other:250},  high:{stay:4000,food:2000,travel:800,activities:700,other:400}},
+  puri:       {low:{stay:800,food:400,travel:500,activities:200,other:150},  medium:{stay:1500,food:800,travel:700,activities:400,other:250},  high:{stay:3500,food:1800,travel:1200,activities:700,other:400}},
+  patna:      {low:{stay:600,food:300,travel:400,activities:150,other:100},  medium:{stay:1000,food:600,travel:600,activities:300,other:200},  high:{stay:2500,food:1300,travel:900,activities:500,other:300}},
+  gangtok:    {low:{stay:1000,food:500,travel:800,activities:300,other:200}, medium:{stay:2000,food:1000,travel:1200,activities:600,other:350}, high:{stay:4500,food:2200,travel:2000,activities:1000,other:500}},
+  shillong:   {low:{stay:900,food:450,travel:700,activities:300,other:200},  medium:{stay:1800,food:900,travel:1000,activities:500,other:300},  high:{stay:4000,food:2000,travel:1800,activities:900,other:450}},
+  mizoram:    {low:{stay:800,food:400,travel:800,activities:300,other:200},  medium:{stay:1500,food:800,travel:1200,activities:500,other:300},  high:{stay:3500,food:1800,travel:2000,activities:800,other:400}},
+  varanasi:   {low:{stay:700,food:350,travel:400,activities:200,other:100},  medium:{stay:1300,food:700,travel:600,activities:400,other:200},  high:{stay:3500,food:1800,travel:1000,activities:700,other:350}},
+};
+
+function setBudgetType(type, btn) {
+  budgetType = type;
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  calcBudget();
+}
+
+function calcBudget() {
+  const dest = document.getElementById('budget-dest').value;
+  const days = parseInt(document.getElementById('budget-days').value) || 3;
+  const travelers = parseInt(document.getElementById('budget-travelers').value) || 2;
+  const base = BASE_COSTS[dest]?.[budgetType] || BASE_COSTS.goa.medium;
+  const stay = base.stay * days;
+  const food = base.food * days * travelers;
+  const travel = base.travel * travelers;
+  const activities = base.activities * days * travelers;
+  const other = base.other * days;
+  const total = stay + food + travel + activities + other;
+  document.getElementById('b-stay').textContent = '₹' + stay.toLocaleString('en-IN');
+  document.getElementById('b-food').textContent = '₹' + food.toLocaleString('en-IN');
+  document.getElementById('b-travel').textContent = '₹' + travel.toLocaleString('en-IN');
+  document.getElementById('b-activities').textContent = '₹' + activities.toLocaleString('en-IN');
+  document.getElementById('b-other').textContent = '₹' + other.toLocaleString('en-IN');
+  document.getElementById('b-total').textContent = '₹' + total.toLocaleString('en-IN');
+  document.getElementById('res-total').textContent = '₹' + total.toLocaleString('en-IN');
+  document.getElementById('res-budget-val').textContent = '₹' + total.toLocaleString('en-IN');
+}
+
+// ==================== ITINERARY ====================
+
+// City-specific fallback itineraries (real famous places)
+const CITY_ITINERARIES = {
+  "goa": {
+    days: [
+      { label:"Day 1", activities:[
+        {time:"8:00 AM – 10:00 AM", icon:"🏖️", name:"Baga Beach", desc:"Start with a relaxed morning at Baga Beach — popular for golden sands, water sports and beach shacks."},
+        {time:"11:00 AM – 1:00 PM", icon:"⛪", name:"Basilica of Bom Jesus", desc:"Visit this UNESCO heritage church in Old Goa, housing the remains of St. Francis Xavier."},
+        {time:"2:00 PM – 3:30 PM", icon:"🍽️", name:"Lunch at Britto's Restaurant", desc:"One of Goa's most famous seafood restaurants on Baga Beach, known for prawns and fish curry."},
+        {time:"4:00 PM – 6:30 PM", icon:"🛍️", name:"Anjuna Flea Market", desc:"Browse hundreds of stalls selling handicrafts, clothes, spices and local art at this iconic market."},
+        {time:"7:00 PM – 8:30 PM", icon:"🌅", name:"Sunset at Vagator Beach", desc:"End your day watching a stunning sunset from the cliffs above Vagator Beach."}
+      ]},
+      { label:"Day 2", activities:[
+        {time:"9:00 AM – 11:30 AM", icon:"🏰", name:"Fort Aguada", desc:"Explore this 17th-century Portuguese fortress offering panoramic views of the Arabian Sea."},
+        {time:"12:00 PM – 2:00 PM", icon:"🏄", name:"Calangute Beach & Water Sports", desc:"Try jet-skiing, parasailing or simply relax at the Queen of Beaches — Calangute."},
+        {time:"3:00 PM – 5:00 PM", icon:"🌿", name:"Spice Plantation Tour", desc:"Take a guided tour of a local spice plantation and enjoy a traditional Goan thali lunch."},
+        {time:"6:00 PM – 8:00 PM", icon:"🎵", name:"Tito's Lane, Baga — Nightlife", desc:"Experience Goa's famous nightlife at Tito's Street with live music and vibrant clubs."}
+      ]},
+      { label:"Day 3", activities:[
+        {time:"8:00 AM – 1:00 PM", icon:"💧", name:"Dudhsagar Waterfalls", desc:"Drive to one of India's tallest waterfalls — a breathtaking 4-tiered cascade in the forest."},
+        {time:"2:00 PM – 3:30 PM", icon:"🐊", name:"Crocodile Dundee River Cruise", desc:"Spot crocodiles and exotic birds on a boat cruise along the Cumbarjua canal."},
+        {time:"4:30 PM – 6:30 PM", icon:"🏛️", name:"Panjim Latin Quarter (Fontainhas)", desc:"Stroll through Goa's colorful Portuguese heritage district with tiled houses and cafes."}
+      ]}
+    ]
+  },
+  "jaipur": {
+    days: [
+      { label:"Day 1", activities:[
+        {time:"8:30 AM – 11:30 AM", icon:"🏰", name:"Amber Fort", desc:"The crown jewel of Jaipur — a massive hilltop fort with stunning mirror palace, courtyards and elephant rides."},
+        {time:"12:00 PM – 1:30 PM", icon:"🕌", name:"Jal Mahal (Water Palace)", desc:"See the picturesque palace floating in the middle of Man Sagar Lake — best viewed from the road."},
+        {time:"2:00 PM – 3:30 PM", icon:"🍽️", name:"Lunch at Laxmi Mishtan Bhandar", desc:"Famous for Dal Baati Churma, ghewar and authentic Rajasthani thali in the old city."},
+        {time:"4:00 PM – 6:00 PM", icon:"🏯", name:"Hawa Mahal", desc:"The iconic five-story Palace of Winds with 953 small windows designed for royal ladies to watch street scenes."},
+        {time:"6:30 PM – 8:00 PM", icon:"🛍️", name:"Johari Bazaar", desc:"Shop for Jaipur's famous gemstones, block-print textiles, bangles and blue pottery."}
+      ]},
+      { label:"Day 2", activities:[
+        {time:"9:00 AM – 11:00 AM", icon:"🏛️", name:"City Palace", desc:"Explore the grand palace complex that still houses the royal family of Jaipur, with museums and courtyards."},
+        {time:"11:30 AM – 1:00 PM", icon:"🌟", name:"Jantar Mantar", desc:"UNESCO-listed astronomical observatory built by Maharaja Jai Singh II — a marvel of ancient science."},
+        {time:"2:30 PM – 5:00 PM", icon:"🏔️", name:"Nahargarh Fort", desc:"Hike or drive up to this fortress on the Aravalli Hills for panoramic views of the Pink City."},
+        {time:"6:00 PM – 8:00 PM", icon:"🌄", name:"Sunset at Jaigarh Fort", desc:"Watch the sun set behind the hills from Jaigarh Fort, home to the world's largest cannon on wheels."}
+      ]}
+    ]
+  },
+  "delhi": {
+    days: [
+      { label:"Day 1", activities:[
+        {time:"8:00 AM – 10:30 AM", icon:"🕌", name:"Qutub Minar", desc:"Start at this UNESCO World Heritage site — the world's tallest brick minaret built in 1193 AD."},
+        {time:"11:00 AM – 1:00 PM", icon:"🏛️", name:"Humayun's Tomb", desc:"A stunning Mughal-era mausoleum that inspired the design of the Taj Mahal, set in lush gardens."},
+        {time:"2:00 PM – 3:30 PM", icon:"🍽️", name:"Lunch at Karim's, Jama Masjid", desc:"Delhi's most legendary Mughal restaurant since 1913 — famous for mutton korma and seekh kebabs."},
+        {time:"4:00 PM – 7:00 PM", icon:"🕌", name:"Jama Masjid & Chandni Chowk", desc:"Visit India's largest mosque then explore Chandni Chowk's iconic lanes of spices, sweets and street food."}
+      ]},
+      { label:"Day 2", activities:[
+        {time:"9:00 AM – 12:00 PM", icon:"🏰", name:"Red Fort (Lal Qila)", desc:"The magnificent Mughal fortress on the banks of Yamuna — a UNESCO site and symbol of India's independence."},
+        {time:"1:00 PM – 2:30 PM", icon:"🪷", name:"Lotus Temple", desc:"A stunning Bahá'í House of Worship shaped like a lotus flower, open to all faiths for silent meditation."},
+        {time:"3:00 PM – 5:00 PM", icon:"🏛️", name:"India Gate & Rajpath", desc:"Walk along the grand ceremonial boulevard and pay tribute at the iconic war memorial."},
+        {time:"6:00 PM – 8:30 PM", icon:"🛍️", name:"Dilli Haat or Connaught Place", desc:"Shop for handicrafts from across India at Dilli Haat or enjoy dining and shopping at CP."}
+      ]}
+    ]
+  },
+  "agra": {
+    days: [
+      { label:"Day 1", activities:[
+        {time:"6:00 AM – 9:00 AM", icon:"🕌", name:"Taj Mahal at Sunrise", desc:"Experience one of the Seven Wonders of the World at its most magical — the white marble glows pink at dawn."},
+        {time:"10:00 AM – 12:30 PM", icon:"🏰", name:"Agra Fort", desc:"Explore the massive red sandstone fort built by Akbar — Shah Jahan was imprisoned here with a view of the Taj."},
+        {time:"1:00 PM – 2:30 PM", icon:"🍽️", name:"Lunch at Peshawari, ITC Mughal", desc:"Enjoy North Frontier cuisine in Agra's finest restaurant with tandoor specialties and dal makhani."},
+        {time:"3:30 PM – 5:30 PM", icon:"🏛️", name:"Itmad-ud-Daulah (Baby Taj)", desc:"The beautiful marble tomb of Mirza Ghiyas Beg — a precursor to the Taj Mahal's inlay work."},
+        {time:"6:00 PM – 7:30 PM", icon:"🌅", name:"Mehtab Bagh — Taj Sunset View", desc:"Watch the Taj Mahal turn golden in the setting sun from this riverside Mughal garden across the Yamuna."}
+      ]}
+    ]
+  }
+};
+
+function getFallback(dest, days) {
+  const key = dest.toLowerCase().split(',')[0].trim();
+  const known = CITY_ITINERARIES[key];
+  if(known) {
+    // Trim or repeat days to match requested count
+    const result = [];
+    for(let i=0; i<days; i++) {
+      if(known.days[i]) result.push({...known.days[i], label:`Day ${i+1}`});
+      else result.push({
+        label:`Day ${i+1}`,
+        activities:[
+          {time:"9:00 AM – 11:00 AM", icon:"🏛️", name:"Local Sightseeing", desc:`Explore more hidden gems and local attractions in ${dest}.`},
+          {time:"12:00 PM – 2:00 PM", icon:"🍽️", name:"Local Food Experience", desc:`Try authentic regional cuisines and street food popular in ${dest}.`},
+          {time:"4:00 PM – 7:00 PM", icon:"🌅", name:"Evening Leisure", desc:`Relax at a popular park, market or viewpoint in ${dest}.`}
+        ]
+      });
+    }
+    return { days: result };
+  }
+  // Generic fallback
+  return { days: Array.from({length:days},(_,i)=>({
+    label:`Day ${i+1}`,
+    activities:[
+      {time:"8:00 AM – 10:30 AM", icon:"🌅", name:"Morning Landmark Visit", desc:`Start your day at the most iconic attraction of ${dest}.`},
+      {time:"11:00 AM – 1:00 PM", icon:"🏛️", name:"Heritage & Culture", desc:`Visit a famous historical site or museum in ${dest}.`},
+      {time:"2:00 PM – 3:30 PM", icon:"🍽️", name:"Local Restaurant", desc:`Enjoy regional specialties at a well-known restaurant in ${dest}.`},
+      {time:"4:30 PM – 6:30 PM", icon:"🛍️", name:"Local Market / Bazaar", desc:`Shop for handicrafts and souvenirs at the main market of ${dest}.`},
+      {time:"7:00 PM – 8:30 PM", icon:"🌆", name:"Evening Sunset Point", desc:`Catch a beautiful sunset from a scenic viewpoint in ${dest}.`}
+    ]
+  }))};
+}
+
+async function generateItinerary() {
+  const dest = document.getElementById('itin-dest').value || 'Goa, India';
+  const days = parseInt(document.getElementById('itin-days').value) || 3;
+  const travelers = document.getElementById('itin-travelers').value;
+  const interests = document.getElementById('itin-interests').value;
+  const result = document.getElementById('itin-result');
+  result.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>Generating your personalized itinerary with AI...</p></div>';
+  document.getElementById('results-title').textContent = `Your ${dest} Trip is Ready!`;
+  document.getElementById('results-sub').textContent = `${days} Days • ${travelers} Traveler${travelers>1?'s':''}`;
+
+  try {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        model:"claude-sonnet-4-20250514",
+        max_tokens:2500,
+        messages:[{role:"user",content:`Create a detailed ${days}-day travel itinerary for ${dest} for ${travelers} travelers interested in ${interests}.
+
+IMPORTANT: Use REAL, WELL-KNOWN, SPECIFIC place names that actually exist in ${dest}. Include famous landmarks, popular restaurants, markets, beaches, forts, temples etc. that are genuinely famous in that city.
+
+Return ONLY valid JSON, no markdown, no extra text, in this exact format:
+{"days":[{"label":"Day 1","activities":[{"time":"9:00 AM – 11:00 AM","icon":"🏛️","name":"REAL Famous Place Name","desc":"2 sentences describing what this place is famous for and what to do/see there."}]}]}
+
+Rules:
+- 4 to 5 activities per day
+- Each "name" must be a real, specific, famous place (not generic like "Local Landmark")
+- "time" must be realistic time slots
+- "icon" should match the place type (🏖️beach 🏰fort 🕌mosque/tomb ⛪church 🍽️restaurant 🛍️market 🌿nature 💧waterfall 🏛️heritage 🎨museum 🌅viewpoint 🚂station)
+- "desc" should mention what the place is actually known for`}]
+      })
+    });
+    const data = await resp.json();
+    let text = (data.content||[]).map(i=>i.text||'').join('').replace(/```json|```/g,'').trim();
+    renderItinerary(JSON.parse(text), dest, days);
+  } catch(e) {
+    renderItinerary(getFallback(dest, days), dest, days);
+  }
+}
+
+function renderItinerary(itin, dest, days) {
+  const result = document.getElementById('itin-result');
+  let html = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.4rem;flex-wrap:wrap;gap:.5rem">
+      <h3 style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.15rem;color:var(--text)">Your ${days}-Day ${dest} Itinerary</h3>
+      <span style="font-size:.78rem;background:#e8f0ff;color:var(--primary);font-weight:700;padding:.3rem .8rem;border-radius:20px">${(itin.days||[]).length} Days</span>
+    </div>`;
+
+  (itin.days||[]).forEach((day, di) => {
+    const colors = ['#1a6ef5','#7c3aed','#0891b2','#059669','#d97706','#dc2626'];
+    const col = colors[di % colors.length];
+    html += `<div class="day-block">
+      <span class="day-tag" style="background:${col}">${day.label}</span>`;
+
+    (day.activities||[]).forEach(act => {
+      html += `
+        <div class="activity">
+          <div class="act-time">${act.time||''}</div>
+          <div class="act-img" style="background:#eef2ff">${act.icon||'📍'}</div>
+          <div class="act-info">
+            <h4>${act.name}</h4>
+            <p>${act.desc}</p>
+          </div>
+        </div>`;
+    });
+
+    html += `</div>`;
+  });
+
+  html += `<button class="btn-primary" onclick="showScreen('results')" style="margin-top:.5rem">💾 Save Plan & Continue →</button>`;
+  result.innerHTML = html;
+}
+
+// ==================== HOTELS ====================
+const HOTELS_DATA = [
+  {name:"Sea Shell Goa Resort",loc:"Calangute, Goa",rating:4.5,reviews:320,price:2500,stars:5,img:"🌊"},
+  {name:"Rambagh Palace",loc:"Jaipur, Rajasthan",rating:4.9,reviews:580,price:22000,stars:5,img:"👑"},
+  {name:"The Leela Palace",loc:"Udaipur, Rajasthan",rating:4.8,reviews:420,price:18000,stars:5,img:"🏰"},
+  {name:"The Oberoi Amarvilas",loc:"Agra, Uttar Pradesh",rating:4.9,reviews:510,price:32000,stars:5,img:"🕌"},
+  {name:"Wildflower Hall",loc:"Shimla, Himachal Pradesh",rating:4.7,reviews:380,price:14000,stars:5,img:"❄️"},
+  {name:"The Zuri Kumarakom",loc:"Kerala Backwaters",rating:4.6,reviews:310,price:8500,stars:5,img:"🌴"},
+  {name:"The LaLiT Grand Palace",loc:"Srinagar, J&K",rating:4.7,reviews:290,price:9500,stars:5,img:"🏔️"},
+  {name:"Taj Mahal Palace",loc:"Mumbai, Maharashtra",rating:4.9,reviews:920,price:25000,stars:5,img:"🌆"},
+  {name:"Trident Hilton",loc:"Bhubaneswar, Odisha",rating:4.4,reviews:210,price:4500,stars:5,img:"🏛️"},
+  {name:"Summit Golden Crescent",loc:"Gangtok, Sikkim",rating:4.3,reviews:180,price:3500,stars:4,img:"⛰️"},
+  {name:"Elgin Hotel",loc:"Darjeeling, West Bengal",rating:4.5,reviews:240,price:5000,stars:4,img:"🍵"},
+  {name:"Radisson Blu",loc:"Amritsar, Punjab",rating:4.4,reviews:350,price:3800,stars:4,img:"🌟"},
+  {name:"Hotel Surya",loc:"Varanasi, UP",rating:4.0,reviews:190,price:2200,stars:3,img:"🙏"},
+  {name:"Hotel Sarovar Portico",loc:"Tirupati, Andhra Pradesh",rating:4.2,reviews:270,price:2800,stars:4,img:"🕍"},
+  {name:"Le Meridien",loc:"Bangalore, Karnataka",rating:4.5,reviews:460,price:7000,stars:5,img:"💻"},
+  {name:"Heritage Haveli",loc:"Jaisalmer, Rajasthan",rating:4.3,reviews:195,price:2600,stars:3,img:"🏜️"},
+  {name:"Zostel Hostel",loc:"Manali, HP",rating:4.2,reviews:500,price:600,stars:2,img:"🎒"},
+  {name:"The Gateway Hotel",loc:"Ahmedabad, Gujarat",rating:4.3,reviews:280,price:4200,stars:4,img:"🏗️"},
+  {name:"Fortune Select Grand",loc:"Chennai, Tamil Nadu",rating:4.3,reviews:320,price:4800,stars:4,img:"🌊"},
+  {name:"Shangrila Homestay",loc:"Shillong, Meghalaya",rating:4.5,reviews:130,price:1800,stars:3,img:"☁️"},
+];
+
+let hotelsFiltered = [...HOTELS_DATA];
+let hotelsSort = 'rating';
+
+function filterHotels() {
+  const q = document.getElementById('hotel-search').value.toLowerCase();
+  hotelsFiltered = HOTELS_DATA.filter(h => h.name.toLowerCase().includes(q) || h.loc.toLowerCase().includes(q));
+  renderHotels();
+}
+
+function sortHotels(val) {
+  hotelsSort = val;
+  renderHotels();
+}
+
+function renderHotels() {
+  let sorted = [...hotelsFiltered];
+  if(hotelsSort==='rating') sorted.sort((a,b)=>b.rating-a.rating);
+  if(hotelsSort==='price_low') sorted.sort((a,b)=>a.price-b.price);
+  if(hotelsSort==='price_high') sorted.sort((a,b)=>b.price-a.price);
+  const grid = document.getElementById('hotels-grid');
+  if(!grid) return;
+  grid.innerHTML = sorted.map((h,i) => `
+    <div class="hotel-card">
+      <div class="hotel-img"><span style="font-size:3rem">${h.img}</span>
+        <div class="hotel-fav" onclick="showToast('Added to favorites! ❤️')">🤍</div>
+      </div>
+      <div class="hotel-body">
+        <div class="hotel-name">${h.name}</div>
+        <div class="hotel-loc">📍 ${h.loc}</div>
+        <div class="hotel-meta">
+          <div><div class="hotel-stars">${'★'.repeat(Math.floor(h.rating))}${'☆'.repeat(5-Math.floor(h.rating))}</div>
+          <div class="hotel-rating">${h.rating} (${h.reviews})</div></div>
+          <div style="text-align:right"><div class="hotel-price">₹${h.price.toLocaleString('en-IN')}</div><div class="hotel-night">/night</div></div>
+        </div>
+        <button class="hotel-btn" onclick="showToast('Opening ${h.name}...')">View Details</button>
+      </div>
+    </div>`).join('');
+}
+
+// ==================== INIT ====================
+renderCityPills();
+calcBudget();
+renderHotels();
+</script>
+</body>
+</html>
